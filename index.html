@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEXO | Rider Intelligence Network</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --neon-purple: #9D00FF;
+            --neon-blue: #00D1FF;
+            --neon-green: #39FF14;
+            --deep-black: #050505;
+        }
+
+        body { 
+            background-color: var(--deep-black); 
+            color: #e0e0e0; 
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        #map { 
+            height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 0;
+            background: #0a0a0a;
+        }
+
+        .glass {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(157, 0, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .neo-button:active { transform: scale(0.95); }
+
+        .scanline {
+            width: 100%; height: 100vh;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(157, 0, 255, 0.02) 3px);
+            position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999;
+        }
+
+        /* Marcadores de otros usuarios */
+        .other-rider-marker {
+            width: 12px; height: 12px;
+            background: var(--neon-purple);
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-purple);
+            transition: all 1s linear;
+        }
+
+        /* Animación de la tienda */
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-active { animation: slideUp 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="scanline"></div>
+
+    <div id="login-screen" class="fixed inset-0 z-[5000] bg-black flex flex-col justify-center items-center p-6 text-center">
+        <div class="mb-10">
+            <h1 class="text-6xl font-bold text-white font-[Syncopate] tracking-tighter" style="text-shadow: 0 0 20px #9D00FF;">NEXO</h1>
+            <p class="text-purple-400 font-mono text-[10px] tracking-[0.5em] mt-2 italic">ESTABLISHING_SECURE_LINK</p>
+        </div>
+        <div class="w-full max-w-xs space-y-4">
+            <input id="userName" type="text" placeholder="NOMBRE DEL OPERADOR" class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-xl text-white outline-none focus:border-purple-500 transition-all font-mono">
+            <button onclick="registerUser()" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-4 rounded-xl font-black text-white tracking-widest neo-button">
+                AUTENTICAR
+            </button>
+        </div>
+    </div>
+
+    <div id="main-ui" class="hidden opacity-0 transition-opacity duration-1000">
+        
+        <header class="fixed top-4 left-4 right-4 z-[1000]">
+            <div class="glass rounded-2xl p-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <img id="userAvatar" class="w-10 h-10 rounded-full border border-purple-500">
+                    <div>
+                        <h2 id="userNameDisplay" class="font-bold text-white text-sm uppercase leading-none mb-1">...</h2>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            <span id="pointsDisplay" class="text-blue-400 font-mono text-xs font-bold">0 NP</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div id="clock" class="text-lg font-bold text-white font-mono">00:00</div>
+                    <div class="text-[9px] text-zinc-500 tracking-widest uppercase">Red Activa</div>
+                </div>
+            </div>
+        </header>
+
+        <div id="map"></div>
+
+        <div id="selection-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] hidden">
+            <div class="bg-purple-600 text-white px-6 py-2 rounded-full text-xs font-bold shadow-lg animate-bounce">
+                SELECCIONA UBICACIÓN EN EL MAPA
+            </div>
+        </div>
+
+        <div class="fixed right-4 top-1/2 -translate-y-1/2 z-[900] flex flex-col gap-3">
+            <button onclick="startPinSelection('POLICE')" class="glass w-12 h-12 rounded-xl flex items-center justify-center text-xl neo-button border-blue-500/50">👮</button>
+            <button onclick="startPinSelection('ACCIDENT')" class="glass w-12 h-12 rounded-xl flex items-center justify-center text-xl neo-button border-red-500/50">🚨</button>
+            <button onclick="startPinSelection('TRAFFIC')" class="glass w-12 h-12 rounded-xl flex items-center justify-center text-xl neo-button border-yellow-500/50">🚧</button>
+        </div>
+
+        <footer class="fixed bottom-6 left-0 w-full z-[1000] px-6">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <button onclick="toggleModal('store-modal')" class="glass p-4 rounded-2xl text-zinc-400 hover:text-white neo-button relative">
+                    <span class="text-xl">🛒</span>
+                    <span id="store-notif" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full hidden"></span>
+                </button>
+
+                <button onclick="centerMap()" class="w-20 h-20 bg-gradient-to-b from-purple-500 to-blue-700 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.5)] border-4 border-black neo-button">
+                    <span class="font-black text-white italic">GPS</span>
+                </button>
+
+                <button onclick="toggleModal('profile-modal')" class="glass p-4 rounded-2xl text-zinc-400 hover:text-white neo-button">
+                    <span class="text-xl">👤</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <div id="store-modal" class="fixed inset-0 z-[4000] hidden bg-black/90 backdrop-blur-md">
+        <div class="absolute bottom-0 w-full glass rounded-t-[3rem] p-8 modal-active">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-black text-white">NEXO STORE</h2>
+                <button onclick="toggleModal('store-modal')" class="text-zinc-500 text-3xl">&times;</button>
+            </div>
+            
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto">
+                <div class="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-purple-900/30 rounded-xl flex items-center justify-center text-3xl">🎒</div>
+                        <div>
+                            <h3 class="font-bold text-white">Mochila Nexo Delivery</h3>
+                            <p class="text-xs text-zinc-500">Resistente al agua + Puerto USB</p>
+                        </div>
+                    </div>
+                    <button onclick="buyItem('Mochila Nexo', 500)" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold text-white neo-button">
+                        500 NP
+                    </button>
+                </div>
+
+                <div class="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl flex justify-between items-center opacity-50">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-zinc-800 rounded-xl flex items-center justify-center text-3xl">🧢</div>
+                        <div>
+                            <h3 class="font-bold text-white">Gorra Nexo Team</h3>
+                            <p class="text-xs text-zinc-500">Próximamente</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono">BLOQUEADO</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="fixed inset-0 z-[4000] hidden bg-black/90 backdrop-blur-md">
+        <div class="absolute bottom-0 w-full glass rounded-t-[3rem] p-8 modal-active">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black text-white">MI EQUIPO</h2>
+                <button onclick="toggleModal('profile-modal')" class="text-zinc-500 text-3xl">&times;</button>
+            </div>
+            <div id="inventory-list" class="grid grid-cols-2 gap-4 pb-10">
+                <p class="text-zinc-500 text-sm col-span-2 text-center py-10">Tu inventario está vacío.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="notif-container" class="fixed top-24 left-4 right-4 z-[5000] pointer-events-none flex flex-col gap-2"></div>
+
+    <script>
+        let map, userMarker;
+        let nexoPoints = parseInt(localStorage.getItem('nexoPoints')) || 0;
+        let inventory = JSON.parse(localStorage.getItem('nexoInventory')) || [];
+        let otherRiders = {};
+        let pendingPinType = null;
+
+        // --- SISTEMA CORE ---
+        function registerUser() {
+            const name = document.getElementById('userName').value.trim();
+            if (name.length < 2) return showNotify("ERROR", "Ingresa un nombre válido");
+
+            localStorage.setItem('nexoUser', name);
+            document.getElementById('userNameDisplay').innerText = name;
+            document.getElementById('userAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`;
+            
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-ui').classList.remove('hidden');
+            setTimeout(() => document.getElementById('main-ui').style.opacity = '1', 100);
+            
+            initNexoSystem();
+        }
+
+        function initNexoSystem() {
+            // Mapa
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.043, -77.028], 14);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+            // Ubicación del Usuario
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(pos => {
+                    const latlng = [pos.coords.latitude, pos.coords.longitude];
+                    if (!userMarker) {
+                        userMarker = L.circleMarker(latlng, { radius: 8, color: '#00D1FF', fillOpacity: 1 }).addTo(map);
+                        map.flyTo(latlng, 16);
+                    } else {
+                        userMarker.setLatLng(latlng);
+                    }
+                });
+            }
+
+            // Simulación de otros usuarios en tiempo real
+            spawnOtherRiders();
+            updatePointsUI();
+            startClock();
+            showNotify("CONECTADO", "Sincronizado con la red Nexo");
+
+            map.on('click', (e) => {
+                if (pendingPinType) submitReport(e.latlng);
+            });
+        }
+
+        // --- TIENDA E INVENTARIO ---
+        function updatePointsUI() {
+            document.getElementById('pointsDisplay').innerText = `${nexoPoints} NP`;
+            localStorage.setItem('nexoPoints', nexoPoints);
+        }
+
+        function buyItem(name, cost) {
+            if (nexoPoints < cost) {
+                return showNotify("ERROR", "Puntos insuficientes");
+            }
+            nexoPoints -= cost;
+            inventory.push({ name: name, date: new Date().toLocaleDateString(), icon: '🎒' });
+            localStorage.setItem('nexoInventory', JSON.stringify(inventory));
+            updatePointsUI();
+            updateInventoryUI();
+            showNotify("TIENDA", "¡Canje exitoso! Revisa tu perfil.");
+            toggleModal('store-modal');
+        }
+
+        function updateInventoryUI() {
+            const container = document.getElementById('inventory-list');
+            if (inventory.length === 0) return;
+            
+            container.innerHTML = inventory.map(item => `
+                <div class="bg-purple-900/20 border border-purple-500/30 p-4 rounded-2xl text-center">
+                    <div class="text-4xl mb-2">${item.icon}</div>
+                    <div class="text-[10px] font-bold text-white uppercase">${item.name}</div>
+                    <div class="text-[8px] text-purple-400 font-mono italic">${item.date}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- REPORTES ---
+        function startPinSelection(type) {
+            pendingPinType = type;
+            document.getElementById('selection-banner').classList.remove('hidden');
+        }
+
+        function submitReport(latlng) {
+            const types = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
+            const icon = L.divIcon({ html: `<div class="text-3xl animate-bounce">${types[pendingPinType]}</div>`, className: 'bg-transparent' });
+            L.marker(latlng, { icon }).addTo(map).bindPopup("Reporte Activo").openPopup();
+            
+            nexoPoints += 50; // Ganar puntos por reportar
+            updatePointsUI();
+            showNotify("REPORTADO", "+50 NP ganados por tu reporte.");
+            
+            pendingPinType = null;
+            document.getElementById('selection-banner').classList.add('hidden');
+        }
+
+        // --- SIMULACIÓN DE RED TIEMPO REAL ---
+        function spawnOtherRiders() {
+            // Creamos 5 usuarios ficticios moviéndose
+            for(let i=0; i<6; i++) {
+                const id = `rider_${i}`;
+                const startLat = -12.043 + (Math.random() - 0.5) * 0.05;
+                const startLng = -77.028 + (Math.random() - 0.5) * 0.05;
+                
+                const icon = L.divIcon({ className: 'other-rider-marker' });
+                const marker = L.marker([startLat, startLng], { icon }).addTo(map);
+                marker.bindPopup(`<div class="text-xs font-mono">RIDER_ID: ${id}<br>STATUS: EN_RUTA</div>`);
+                
+                otherRiders[id] = { marker, lat: startLat, lng: startLng };
+            }
+
+            // Moverlos cada 3 segundos para simular tiempo real
+            setInterval(() => {
+                for (let id in otherRiders) {
+                    const rider = otherRiders[id];
+                    rider.lat += (Math.random() - 0.5) * 0.001;
+                    rider.lng += (Math.random() - 0.5) * 0.001;
+                    rider.marker.setLatLng([rider.lat, rider.lng]);
+                }
+            }, 3000);
+        }
+
+        // --- UTILIDADES UI ---
+        function toggleModal(id) {
+            const m = document.getElementById(id);
+            m.classList.toggle('hidden');
+            if (id === 'profile-modal') updateInventoryUI();
+        }
+
+        function showNotify(title, msg) {
+            const container = document.getElementById('notif-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass p-4 rounded-xl border-l-4 border-blue-500 text-white flex flex-col shadow-2xl';
+            toast.innerHTML = `<span class="text-[10px] font-black text-blue-400 font-mono">${title}</span><span class="text-xs font-bold">${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 3000);
+        }
+
+        function startClock() {
+            setInterval(() => {
+                const d = new Date();
+                document.getElementById('clock').innerText = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }, 1000);
+        }
+
+        function centerMap() {
+            if (userMarker) map.flyTo(userMarker.getLatLng(), 16);
+        }
+
+        // Cargar inventario al iniciar
+        updateInventoryUI();
+    </script>
+</body>
+</html>
