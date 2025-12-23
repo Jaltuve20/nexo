@@ -23,50 +23,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
         
-        :root {
-            --neon-purple: #9D00FF;
-            --deep-black: #050505;
-        }
-
-        body { 
-            font-family: 'Rajdhani', sans-serif;
-            overflow: hidden;
-            touch-action: manipulation;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
+        :root { --neon-purple: #9D00FF; --deep-black: #050505; }
+        body { font-family: 'Rajdhani', sans-serif; overflow: hidden; touch-action: manipulation; transition: background-color 0.3s, color 0.3s; }
         #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 0; }
-
-        /* Clases de Cristalografía (Glassmorphism) mejoradas */
-        .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        .dark .glass {
-            background: rgba(15, 15, 15, 0.8);
-            border: 1px solid rgba(157, 0, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+        .dark .glass { background: rgba(15, 15, 15, 0.8); border: 1px solid rgba(157, 0, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); }
         .neo-button:active { transform: scale(0.92); transition: 0.1s; }
-
-        /* Efectos Visuales */
-        .scanline {
-            width: 100%; height: 100vh;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(157, 0, 255, 0.02) 3px);
-            position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999;
-        }
-
-        .other-rider-marker {
-            width: 14px; height: 14px;
-            background: var(--neon-purple);
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 12px var(--neon-purple);
-        }
-
+        .scanline { width: 100%; height: 100vh; background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(157, 0, 255, 0.02) 3px); position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; }
+        .other-rider-marker { width: 14px; height: 14px; background: var(--neon-purple); border: 2px solid white; border-radius: 50%; box-shadow: 0 0 12px var(--neon-purple); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-active { animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
     </style>
@@ -77,14 +41,12 @@
 
     <div id="login-screen" class="fixed inset-0 z-[5000] bg-white dark:bg-black flex flex-col justify-center items-center p-6 text-center transition-colors">
         <div class="mb-10">
-            <h1 class="text-6xl font-bold font-[Syncopate] tracking-tighter dark:text-white text-black" style="text-shadow: 0 0 20px rgba(157,0,255,0.4);">NEXO</h1>
+            <h1 class="text-6xl font-bold font-[Syncopate] tracking-tighter dark:text-white text-black">NEXO</h1>
             <p class="text-purple-600 dark:text-purple-400 font-mono text-[10px] tracking-[0.5em] mt-2 italic uppercase">Estableciendo Enlace Seguro</p>
         </div>
         <div class="w-full max-w-xs space-y-4">
             <input id="userName" type="text" placeholder="ID DEL OPERADOR" class="w-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-4 rounded-2xl outline-none focus:ring-2 ring-purple-500 transition-all font-mono text-center">
-            <button onclick="registerUser()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 py-4 rounded-2xl font-black text-white tracking-widest shadow-lg neo-button">
-                AUTENTICAR
-            </button>
+            <button onclick="registerUser()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 py-4 rounded-2xl font-black text-white tracking-widest shadow-lg neo-button">AUTENTICAR</button>
         </div>
     </div>
 
@@ -102,14 +64,9 @@
                         <span id="pointsDisplay" class="text-indigo-600 dark:text-neonBlue font-mono text-xs font-bold">0 NP</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <button onclick="toggleTheme()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-zinc-800 text-lg">
-                        <span id="theme-icon">🌙</span>
-                    </button>
-                    <div class="text-right border-l pl-4 border-slate-300 dark:border-zinc-700">
-                        <div id="clock" class="text-sm font-bold font-mono">00:00</div>
-                        <div class="text-[8px] opacity-60 tracking-widest uppercase">Red Nexo</div>
-                    </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleModal('info-modal')" class="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold">?</button>
+                    <button onclick="toggleTheme()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-zinc-800 text-lg"><span id="theme-icon">🌙</span></button>
                 </div>
             </div>
         </header>
@@ -117,30 +74,20 @@
         <div id="map"></div>
 
         <div class="fixed right-4 top-1/2 -translate-y-1/2 z-[900] flex flex-col gap-4">
-            <button onclick="startPinSelection('POLICE')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl neo-button" title="Policía">👮</button>
-            <button onclick="startPinSelection('ACCIDENT')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl neo-button" title="Accidente">🚨</button>
-            <button onclick="startPinSelection('TRAFFIC')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl neo-button" title="Tráfico">🚧</button>
+            <button onclick="startPinSelection('POLICE')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl neo-button">👮</button>
+            <button onclick="startPinSelection('ACCIDENT')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl neo-button">🚨</button>
+            <button onclick="startPinSelection('TRAFFIC')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl neo-button">🚧</button>
         </div>
 
         <div id="selection-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] hidden">
-            <div class="bg-indigo-600 text-white px-6 py-2 rounded-full text-xs font-bold shadow-2xl animate-pulse">
-                TOCA EL PUNTO EN EL MAPA
-            </div>
+            <div class="bg-indigo-600 text-white px-6 py-2 rounded-full text-xs font-bold shadow-2xl animate-pulse">TOCA EL PUNTO EN EL MAPA</div>
         </div>
 
         <footer class="fixed bottom-6 left-0 w-full z-[1000] px-6">
             <div class="max-w-md mx-auto flex justify-between items-center">
-                <button onclick="toggleModal('store-modal')" class="glass p-4 rounded-2xl text-slate-600 dark:text-zinc-400 neo-button">
-                    <span class="text-xl">🛒</span>
-                </button>
-
-                <button onclick="centerMap()" class="w-20 h-20 bg-gradient-to-tr from-purple-600 to-indigo-700 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(79,70,229,0.5)] border-4 border-white dark:border-zinc-900 neo-button">
-                    <span class="font-black text-white italic text-lg">GPS</span>
-                </button>
-
-                <button onclick="toggleModal('profile-modal')" class="glass p-4 rounded-2xl text-slate-600 dark:text-zinc-400 neo-button">
-                    <span class="text-xl">👤</span>
-                </button>
+                <button onclick="toggleModal('store-modal')" class="glass p-4 rounded-2xl text-slate-600 dark:text-zinc-400 neo-button"><span>🛒</span></button>
+                <button onclick="centerMap()" class="w-20 h-20 bg-gradient-to-tr from-purple-600 to-indigo-700 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(79,70,229,0.5)] border-4 border-white dark:border-zinc-900 neo-button"><span class="font-black text-white italic text-lg">GPS</span></button>
+                <button onclick="toggleModal('profile-modal')" class="glass p-4 rounded-2xl text-slate-600 dark:text-zinc-400 neo-button"><span>👤</span></button>
             </div>
         </footer>
     </div>
@@ -149,21 +96,46 @@
         <div class="absolute bottom-0 w-full glass rounded-t-[2.5rem] p-8 modal-active">
             <div class="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 mx-auto mb-6 rounded-full"></div>
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-black">NEXO STORE</h2>
+                <h2 class="text-2xl font-black italic">NEXO STORE</h2>
                 <button onclick="toggleModal('store-modal')" class="text-3xl">&times;</button>
             </div>
-            
             <div class="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                <div class="bg-white dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 p-4 rounded-3xl flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-2xl">🎒</div>
-                        <div>
-                            <h3 class="font-bold text-sm">Mochila Pro</h3>
-                            <p class="text-[10px] opacity-60">Edición Limitada</p>
+                <div class="bg-white dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 p-4 rounded-3xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-xl">🎒</div>
+                            <div>
+                                <h3 class="font-bold text-sm">Mochila Térmica</h3>
+                                <p class="text-[9px] opacity-60">Ideal para largas rutas</p>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="buyItem('Mochila Nexo', 500)" class="bg-indigo-600 px-5 py-2 rounded-xl text-xs font-bold text-white neo-button">500 NP</button>
+                    <div class="flex gap-2">
+                        <button onclick="buyItem('Mochila', 500, 'NP')" class="flex-1 bg-indigo-600 py-2 rounded-xl text-[10px] font-bold text-white uppercase">500 NP</button>
+                        <button onclick="buyItem('Mochila', 200, 'Soles')" class="flex-1 bg-green-600 py-2 rounded-xl text-[10px] font-bold text-white uppercase">S/ 200.00</button>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="info-modal" class="fixed inset-0 z-[4000] hidden bg-black/40 dark:bg-black/80 backdrop-blur-sm">
+        <div class="absolute bottom-0 w-full glass rounded-t-[2.5rem] p-8 modal-active">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black tracking-tighter">SISTEMA DE PUNTOS NEXO</h2>
+                <button onclick="toggleModal('info-modal')" class="text-3xl">&times;</button>
+            </div>
+            <div class="space-y-4 text-sm leading-relaxed opacity-90">
+                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800">
+                    <p class="font-bold text-indigo-600 dark:text-indigo-400 mb-1">¿Qué son los NP?</p>
+                    <p>Los **Nexo Puntos (NP)** son la moneda digital de nuestra red. Reconocemos tu esfuerzo por mantener informada a la comunidad de Riders.</p>
+                </div>
+                <div class="p-2 space-y-3">
+                    <p>📍 **¿Cómo ganar?**: Cada reporte válido (Policía, Accidente, Tráfico) te otorga **5 NP**.</p>
+                    <p>🎁 **¿Cómo canjear?**: Entra a la **Nexo Store** 🛒 y usa tus puntos acumulados para obtener equipamiento profesional sin costo adicional.</p>
+                    <p>💳 **Opciones**: Si no tienes suficientes puntos, también puedes adquirir productos usando **Soles (S/)**.</p>
+                </div>
+                <button onclick="toggleModal('info-modal')" class="w-full bg-slate-900 dark:bg-white dark:text-black text-white py-4 rounded-2xl font-bold mt-4">ENTENDIDO</button>
             </div>
         </div>
     </div>
@@ -174,8 +146,7 @@
                 <h2 class="text-2xl font-black">MI EQUIPO</h2>
                 <button onclick="toggleModal('profile-modal')" class="text-3xl">&times;</button>
             </div>
-            <div id="inventory-list" class="grid grid-cols-2 gap-4 pb-10">
-                </div>
+            <div id="inventory-list" class="grid grid-cols-2 gap-4 pb-10"></div>
         </div>
     </div>
 
@@ -187,25 +158,19 @@
         let inventory = JSON.parse(localStorage.getItem('nexoInventory')) || [];
         let pendingPinType = null;
 
-        // --- SISTEMA DE TEMA ---
         function toggleTheme() {
             theme = theme === 'dark' ? 'light' : 'dark';
             document.documentElement.classList.toggle('dark');
             document.getElementById('theme-icon').innerText = theme === 'dark' ? '🌙' : '☀️';
-            
-            // Cambiar estilo del mapa
-            const provider = theme === 'dark' ? 'dark_all' : 'rastertiles/voyager';
-            L.tileLayer(`https://{s}.basemaps.cartocdn.com/${provider}/{z}/{x}/{y}{r}.png`).addTo(map);
+            L.tileLayer(`https://{s}.basemaps.cartocdn.com/${theme === 'dark' ? 'dark_all' : 'rastertiles/voyager'}/{z}/{x}/{y}{r}.png`).addTo(map);
         }
 
         function registerUser() {
             const name = document.getElementById('userName').value.trim();
             if (name.length < 2) return showNotify("ERROR", "ID no válido");
-
             localStorage.setItem('nexoUser', name);
             document.getElementById('userNameDisplay').innerText = name;
             document.getElementById('userAvatar').src = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${name}`;
-            
             document.getElementById('login-screen').classList.add('opacity-0');
             setTimeout(() => {
                 document.getElementById('login-screen').style.display = 'none';
@@ -217,30 +182,19 @@
 
         function initNexoSystem() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.043, -77.028], 14);
-            
-            // Tile inicial
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(pos => {
                     const latlng = [pos.coords.latitude, pos.coords.longitude];
                     if (!userMarker) {
                         userMarker = L.circleMarker(latlng, { radius: 10, color: '#9D00FF', fillColor: '#00D1FF', fillOpacity: 1, weight: 3 }).addTo(map);
                         map.flyTo(latlng, 16);
-                    } else {
-                        userMarker.setLatLng(latlng);
-                    }
+                    } else userMarker.setLatLng(latlng);
                 });
             }
-
-            spawnOtherRiders();
             updatePointsUI();
             startClock();
-            showNotify("SISTEMA", "Red inteligente activada");
-
-            map.on('click', (e) => {
-                if (pendingPinType) submitReport(e.latlng);
-            });
+            map.on('click', (e) => { if (pendingPinType) submitReport(e.latlng); });
         }
 
         function updatePointsUI() {
@@ -257,21 +211,11 @@
             const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
             const icon = L.divIcon({ html: `<div class="text-4xl filter drop-shadow-lg animate-bounce">${icons[pendingPinType]}</div>`, className: 'bg-transparent' });
             L.marker(latlng, { icon }).addTo(map);
-            
-            nexoPoints += 50;
+            nexoPoints += 5; // Cambiado a 5 puntos
             updatePointsUI();
-            showNotify("LOGRO", "+50 NP por reporte vial");
+            showNotify("LOGRO", "+5 NP por reporte vial");
             pendingPinType = null;
             document.getElementById('selection-banner').classList.add('hidden');
-        }
-
-        function spawnOtherRiders() {
-            for(let i=0; i<5; i++) {
-                const lat = -12.043 + (Math.random() - 0.5) * 0.04;
-                const lng = -77.028 + (Math.random() - 0.5) * 0.04;
-                const markerIcon = L.divIcon({ className: 'other-rider-marker' });
-                L.marker([lat, lng], { icon: markerIcon }).addTo(map);
-            }
         }
 
         function toggleModal(id) {
@@ -283,48 +227,40 @@
         function showNotify(title, msg) {
             const container = document.getElementById('notif-container');
             const toast = document.createElement('div');
-            toast.className = 'glass p-4 rounded-2xl border-l-4 border-indigo-500 flex flex-col shadow-xl transition-all duration-500 transform translate-y-0';
+            toast.className = 'glass p-4 rounded-2xl border-l-4 border-indigo-500 flex flex-col shadow-xl transition-all duration-500';
             toast.innerHTML = `<span class="text-[9px] font-black text-indigo-500 uppercase">${title}</span><span class="text-xs font-bold">${msg}</span>`;
             container.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.add('opacity-0', '-translate-y-4');
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
+            setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 500); }, 3000);
         }
 
         function startClock() {
-            const update = () => {
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            };
-            update();
-            setInterval(update, 1000);
+            const update = () => document.getElementById('clock').innerText = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            update(); setInterval(update, 1000);
         }
 
-        function centerMap() {
-            if (userMarker) map.flyTo(userMarker.getLatLng(), 16);
-        }
+        function centerMap() { if (userMarker) map.flyTo(userMarker.getLatLng(), 16); }
 
         function updateInventoryUI() {
             const container = document.getElementById('inventory-list');
             if (inventory.length === 0) {
-                container.innerHTML = '<p class="col-span-2 text-center py-10 opacity-50 text-sm italic">Sin objetos en el inventario</p>';
+                container.innerHTML = '<p class="col-span-2 text-center py-10 opacity-50 text-sm italic">Sin objetos</p>';
                 return;
             }
-            container.innerHTML = inventory.map(item => `
-                <div class="bg-white dark:bg-zinc-800/50 p-4 rounded-3xl border border-slate-200 dark:border-zinc-700 text-center">
-                    <div class="text-3xl mb-1">${item.icon}</div>
-                    <div class="text-[10px] font-bold uppercase">${item.name}</div>
-                </div>
-            `).join('');
+            container.innerHTML = inventory.map(item => `<div class="bg-white dark:bg-zinc-800/50 p-4 rounded-3xl border border-slate-200 dark:border-zinc-700 text-center"><div class="text-3xl mb-1">${item.icon}</div><div class="text-[10px] font-bold uppercase">${item.name}</div></div>`).join('');
         }
 
-        function buyItem(name, cost) {
-            if (nexoPoints < cost) return showNotify("FALLIDO", "Necesitas más puntos");
-            nexoPoints -= cost;
+        function buyItem(name, cost, type) {
+            if (type === 'NP') {
+                if (nexoPoints < cost) return showNotify("FALLIDO", "Necesitas más puntos");
+                nexoPoints -= cost;
+                updatePointsUI();
+            } else {
+                // Simulación de pasarela de pago para soles
+                alert(`Redirigiendo a pasarela de pago por S/ ${cost}.00...`);
+            }
             inventory.push({ name, icon: '🎒' });
             localStorage.setItem('nexoInventory', JSON.stringify(inventory));
-            updatePointsUI();
-            showNotify("COMPRA", "Objeto añadido a tu equipo");
+            showNotify("ÉXITO", "Objeto añadido a tu equipo");
             toggleModal('store-modal');
         }
     </script>
