@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="NEXO - Red de inteligencia colaborativa para riders">
     <title>NEXO | Rider Intelligence Network</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -12,29 +13,40 @@
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { extend: { colors: { neonPurple: '#9D00FF', neonBlue: '#00D1FF' }, animation: { 'bounce-slow': 'bounce 2s infinite' } } }
+            theme: { 
+                extend: { 
+                    colors: { neonPurple: '#9D00FF', neonBlue: '#00D1FF' },
+                    animation: { 'bounce-slow': 'bounce 2s infinite' }
+                } 
+            }
         }
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-        body { font-family: 'Rajdhani', sans-serif; overflow: hidden; touch-action: manipulation; }
+        :root { --neon-purple: #9D00FF; --deep-black: #050505; }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Rajdhani', sans-serif; overflow: hidden; touch-action: manipulation; overscroll-behavior: none; }
         #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(0, 0, 0, 0.1); }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(0, 0, 0, 0.1); }
         .dark .glass { background: rgba(15, 15, 15, 0.85); border: 1px solid rgba(157, 0, 255, 0.3); }
         .ui-element { z-index: 1000; position: relative; }
-        /* Ocultar el panel por defecto de la librería de rutas para usar el nuestro */
-        .leaflet-routing-container { display: none !important; }
+        .neo-button:active { transform: scale(0.94); }
         .modal-active { animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
         @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Estilos para ocultar el panel de control de ruta de Leaflet */
+        .leaflet-routing-container { display: none !important; }
     </style>
 </head>
-<body class="bg-[#050505] text-gray-100">
+<body class="bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-gray-100">
 
-    <div id="login-screen" class="fixed inset-0 z-[5000] bg-black flex flex-col justify-center items-center p-6 text-center">
-        <h1 class="text-6xl font-bold font-[Syncopate] mb-8 bg-clip-text text-transparent bg-gradient-to-r from-neonBlue to-neonPurple text-white">NEXO</h1>
+    <div id="login-screen" class="fixed inset-0 z-[5000] bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-zinc-900 flex flex-col justify-center items-center p-6 text-center">
+        <div class="mb-12">
+            <h1 class="text-7xl font-bold font-[Syncopate] mb-4 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-neonBlue dark:to-neonPurple">NEXO</h1>
+            <p class="text-sm opacity-60 tracking-widest">RIDER INTELLIGENCE NETWORK</p>
+        </div>
         <div class="w-full max-w-xs space-y-4">
-            <input id="userName" type="text" placeholder="ID OPERADOR" class="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-2xl outline-none text-center font-mono focus:border-neonPurple text-white">
-            <button onclick="app.registerUser()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 py-4 rounded-2xl font-black text-white shadow-lg">ENTRAR</button>
+            <input id="userName" type="text" placeholder="ID OPERADOR" maxlength="20" class="w-full bg-slate-100 dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 p-4 rounded-2xl outline-none text-center font-mono focus:border-neonPurple transition-colors">
+            <button onclick="app.registerUser()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 py-4 rounded-2xl font-black text-white tracking-widest neo-button shadow-lg">ENTRAR</button>
         </div>
     </div>
 
@@ -44,58 +56,89 @@
                 <div class="flex items-center gap-3">
                     <img id="userAvatar" class="w-10 h-10 rounded-full border-2 border-purple-500 shadow-md">
                     <div>
-                        <h2 id="userNameDisplay" class="font-bold text-xs uppercase leading-none">...</h2>
-                        <span id="pointsDisplay" class="text-neonBlue font-mono text-[10px] font-bold">0 NP</span>
+                        <h2 id="userNameDisplay" class="font-bold text-sm uppercase leading-none">...</h2>
+                        <span id="pointsDisplay" class="text-indigo-600 dark:text-neonBlue font-mono text-xs font-bold">0 NP</span>
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="app.toggleRouteMode()" id="route-btn" class="w-10 h-10 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xl transition-all shadow-lg">🛣️</button>
-                    <button onclick="app.toggleTheme()" class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-xl">🌙</button>
+                    <button onclick="app.toggleRoutePanel()" class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-neonBlue flex items-center justify-center neo-button">🛣️</button>
+                    <button onclick="app.toggleTheme()" class="w-10 h-10 rounded-full bg-slate-200 dark:bg-zinc-800 neo-button"><span id="theme-icon">🌙</span></button>
                 </div>
             </div>
-            
-            <div id="route-panel" class="hidden mt-3 glass rounded-2xl p-4 space-y-3 animate-slideUp">
-                <input id="destination-input" type="text" placeholder="¿A dónde vas?" class="w-full bg-black/20 border border-white/10 p-3 rounded-xl text-sm outline-none focus:border-neonPurple">
+
+            <div id="route-panel" class="hidden mt-3 glass rounded-2xl p-4 space-y-3">
                 <div class="flex gap-2">
-                    <button onclick="app.calculateRoute()" class="flex-1 bg-neonPurple text-white py-2 rounded-xl text-xs font-bold">CALCULAR RUTA</button>
-                    <button onclick="app.clearRoute()" class="px-4 bg-red-600/20 text-red-500 py-2 rounded-xl text-xs font-bold">X</button>
+                    <input id="destination-input" type="text" placeholder="Ingresa destino o toca el mapa" class="flex-1 bg-white dark:bg-black/40 border border-slate-300 dark:border-white/10 p-3 rounded-xl text-sm outline-none focus:border-neonPurple">
+                    <button onclick="app.clearRoute()" class="px-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl font-bold">✕</button>
                 </div>
-                <p id="route-info" class="text-[10px] opacity-60 text-center italic">También puedes tocar el mapa para marcar el destino.</p>
+                <button onclick="app.calculateRoute()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest">TRAZAR RUTA</button>
             </div>
         </header>
 
         <div id="map"></div>
 
         <div id="selection-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] hidden">
-            <div class="bg-neonPurple text-white px-6 py-2 rounded-full text-[10px] font-bold shadow-2xl animate-pulse">
-                📍 MODO SELECCIÓN ACTIVO
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl animate-pulse">
+                📍 TOCA EL MAPA PARA EL PIN
             </div>
         </div>
 
         <div class="fixed right-4 top-1/2 -translate-y-1/2 ui-element flex flex-col gap-3">
-            <button onclick="app.startPinSelection('POLICE')" class="glass w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg">👮</button>
-            <button onclick="app.startPinSelection('ACCIDENT')" class="glass w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg">🚨</button>
-            <button onclick="app.startPinSelection('TRAFFIC')" class="glass w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-lg">🚧</button>
+            <button onclick="app.startPinSelection('POLICE')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-3xl neo-button shadow-lg">👮</button>
+            <button onclick="app.startPinSelection('ACCIDENT')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-3xl neo-button shadow-lg">🚨</button>
+            <button onclick="app.startPinSelection('TRAFFIC')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-3xl neo-button shadow-lg">🚧</button>
         </div>
 
         <footer class="fixed bottom-6 left-0 w-full ui-element px-6">
             <div class="max-w-md mx-auto flex justify-between items-center">
-                <button onclick="app.toggleModal('store-modal')" class="glass p-4 rounded-2xl text-xl">🛒</button>
-                <button onclick="app.centerMap()" class="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center shadow-2xl border-4 border-black text-xl">📍</button>
-                <button onclick="app.toggleModal('profile-modal')" class="glass p-4 rounded-2xl text-xl">👤</button>
+                <button onclick="app.toggleModal('store-modal')" class="glass p-4 rounded-2xl neo-button text-2xl shadow-lg">🛒</button>
+                <button onclick="app.centerMap()" class="w-20 h-20 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex flex-col items-center justify-center shadow-2xl border-4 border-white dark:border-zinc-900 neo-button text-white">
+                    <span class="text-2xl">📍</span>
+                    <span class="text-[10px] font-bold mt-1">GPS</span>
+                </button>
+                <button onclick="app.toggleModal('profile-modal')" class="glass p-4 rounded-2xl neo-button text-2xl shadow-lg">👤</button>
             </div>
         </footer>
     </div>
 
-    <div id="notif-container" class="fixed top-32 left-4 right-4 z-[6000] pointer-events-none flex flex-col gap-2"></div>
+    <div id="store-modal" class="fixed inset-0 z-[4000] hidden bg-black/60 backdrop-blur-sm" onclick="app.closeModalOnBackdrop(event, 'store-modal')">
+        <div class="absolute bottom-0 w-full glass rounded-t-[2.5rem] p-8 modal-active max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <h2 class="text-2xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 uppercase">NEXO STORE</h2>
+            <div class="bg-slate-100 dark:bg-zinc-900 p-5 rounded-2xl border-2 border-slate-200 dark:border-zinc-800 mb-4">
+                <p class="font-bold">Mochila Nexo Pro</p>
+                <div class="flex gap-3 mt-4">
+                    <button onclick="app.buyWithPoints('Mochila', 500)" class="flex-1 bg-purple-600 text-white py-3 rounded-xl text-xs font-bold">500 NP</button>
+                    <button onclick="app.buyWithSoles('Mochila', 200)" class="flex-1 bg-green-600 text-white py-3 rounded-xl text-xs font-bold">S/ 200</button>
+                </div>
+            </div>
+            <button onclick="app.toggleModal('store-modal')" class="w-full py-4 text-sm opacity-50">CERRAR TIENDA</button>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="fixed inset-0 z-[4000] hidden bg-black/60 backdrop-blur-sm" onclick="app.closeModalOnBackdrop(event, 'profile-modal')">
+        <div class="absolute bottom-0 w-full glass rounded-t-[2.5rem] p-8 modal-active" onclick="event.stopPropagation()">
+            <div class="text-center">
+                <img id="profileAvatar" class="w-24 h-24 rounded-full border-4 border-purple-500 mx-auto mb-4">
+                <h3 id="profileName" class="text-xl font-bold uppercase">...</h3>
+                <p id="profilePoints" class="text-3xl font-black text-neonBlue mt-2">0 NP</p>
+                <button onclick="app.logout()" class="w-full bg-red-600 text-white py-4 rounded-xl font-bold mt-6">CERRAR SESIÓN</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notif-container" class="fixed top-28 left-4 right-4 z-[6000] pointer-events-none flex flex-col gap-2"></div>
 
     <script>
         const app = {
-            map: null, userMarker: null, userName: localStorage.getItem('nexoUserName') || '',
+            map: null, userMarker: null, theme: localStorage.getItem('nexoTheme') || 'dark',
             nexoPoints: parseInt(localStorage.getItem('nexoPoints')) || 0,
-            routingControl: null, routeMode: false, pendingPinType: null,
+            userName: localStorage.getItem('nexoUserName') || '',
+            routingControl: null, pendingPinType: null, tileLayer: null, routeMode: false,
 
-            init() { if (this.userName) this.showMainUI(); },
+            init() { 
+                document.documentElement.className = this.theme;
+                if (this.userName) this.showMainUI(); 
+            },
 
             registerUser() {
                 const name = document.getElementById('userName').value.trim();
@@ -107,22 +150,34 @@
 
             showMainUI() {
                 document.getElementById('userNameDisplay').textContent = this.userName;
-                document.getElementById('userAvatar').src = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${this.userName}`;
+                document.getElementById('profileName').textContent = this.userName;
+                const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${this.userName}`;
+                document.getElementById('userAvatar').src = avatar;
+                document.getElementById('profileAvatar').src = avatar;
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('main-ui').classList.remove('hidden');
-                setTimeout(() => { document.getElementById('main-ui').style.opacity = '1'; this.initMap(); }, 50);
+                setTimeout(() => { document.getElementById('main-ui').style.opacity = '1'; this.initMap(); this.updatePointsUI(); }, 50);
             },
 
             initMap() {
+                if (this.map) return;
                 this.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.043, -77.028], 14);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(this.map);
+                this.updateMapTheme();
                 this.getUserLocation();
                 
-                // Si el modo ruta está activo, permitir click para destino
                 this.map.on('click', (e) => {
-                    if (this.routeMode) this.setRouteDestination(e.latlng);
-                    else if (this.pendingPinType) this.handleReportClick(e.latlng);
+                    if (this.routeMode) {
+                        this.calculateRoute(e.latlng);
+                    } else if (this.pendingPinType) {
+                        this.handleReportClick(e.latlng);
+                    }
                 });
+            },
+
+            updateMapTheme() {
+                const style = this.theme === 'dark' ? 'dark_all' : 'rastertiles/voyager';
+                if (this.tileLayer) this.map.removeLayer(this.tileLayer);
+                this.tileLayer = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`).addTo(this.map);
             },
 
             getUserLocation() {
@@ -135,60 +190,45 @@
             },
 
             // --- LÓGICA DE RUTAS ---
-            toggleRouteMode() {
+            toggleRoutePanel() {
                 this.routeMode = !this.routeMode;
-                const panel = document.getElementById('route-panel');
-                const btn = document.getElementById('route-btn');
-                panel.classList.toggle('hidden');
-                btn.classList.toggle('bg-neonPurple');
-                this.showNotify("MODO RUTA", this.routeMode ? "Toca el mapa para marcar tu destino" : "Buscador desactivado");
-            },
-
-            setRouteDestination(latlng) {
-                if (!this.userMarker) return this.showNotify("ERROR", "No detecto tu ubicación");
-                this.calculateRoute(latlng);
+                document.getElementById('route-panel').classList.toggle('hidden');
+                this.showNotify("NAVEGACIÓN", this.routeMode ? "Toca el mapa para destino o escribe" : "Modo ruta desactivado");
             },
 
             calculateRoute(destLatLng = null) {
+                if (!this.userMarker) return alert("Buscando tu GPS...");
                 if (this.routingControl) this.map.removeControl(this.routingControl);
 
-                const origin = this.userMarker.getLatLng();
                 const destination = destLatLng || document.getElementById('destination-input').value;
-
                 if (!destination) return;
 
                 this.routingControl = L.Routing.control({
-                    waypoints: [ L.latLng(origin.lat, origin.lng), destination ],
-                    routeWhileDragging: true,
+                    waypoints: [this.userMarker.getLatLng(), destination],
+                    routeWhileDragging: false,
                     lineOptions: {
-                        styles: [
-                            { color: '#9D00FF', opacity: 0.8, weight: 8 }, // Color por defecto (Morado)
-                        ]
+                        styles: [{ color: '#9D00FF', weight: 7, opacity: 0.9 }] // Morado para la principal
                     },
-                    // Personalización de colores según distancia
                     altLineOptions: {
-                        styles: [
-                            { color: '#FF3131', opacity: 0.6, weight: 6 }, // Ruta alternativa (Rojo)
-                        ]
+                        styles: [{ color: '#FF0000', weight: 5, opacity: 0.6 }] // Rojo para alternativas
                     },
-                    createMarker: function(i, wp) {
-                        return L.marker(wp.latLng, { draggable: true, icon: L.divIcon({ html: i === 0 ? '🏠' : '🏁', className: 'text-2xl' }) });
-                    }
+                    show: false,
+                    addWaypoints: false,
+                    createMarker: () => null // No crea marcadores de ruta feos
                 }).addTo(this.map);
 
                 this.routingControl.on('routesfound', (e) => {
-                    const routes = e.routes;
-                    this.showNotify("RUTA LISTA", `Distancia: ${(routes[0].summary.totalDistance / 1000).toFixed(1)} km`);
+                    const dist = (e.routes[0].summary.totalDistance / 1000).toFixed(1);
+                    this.showNotify("RUTA", `Distancia: ${dist} km`);
                 });
             },
 
             clearRoute() {
                 if (this.routingControl) this.map.removeControl(this.routingControl);
                 document.getElementById('destination-input').value = "";
-                this.showNotify("RUTAS", "Mapa limpio");
             },
 
-            // --- REPORTE Y OTROS ---
+            // --- REPORTE ---
             startPinSelection(type) {
                 this.pendingPinType = type;
                 document.getElementById('selection-banner').classList.remove('hidden');
@@ -196,25 +236,48 @@
 
             handleReportClick(latlng) {
                 const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
-                L.marker(latlng, { icon: L.divIcon({ html: `<div class="text-3xl animate-bounce">${icons[this.pendingPinType]}</div>`, className: 'pin' }) }).addTo(this.map);
-                this.showNotify("REPORTE", "¡Gracias! +5 NP");
+                const icon = L.divIcon({ html: `<div class="text-3xl animate-bounce-slow">${icons[this.pendingPinType]}</div>`, className: 'custom-pin' });
+                L.marker(latlng, { icon }).addTo(this.map);
+                this.nexoPoints += 5;
+                this.updatePointsUI();
+                this.saveStats();
+                this.showNotify("ÉXITO", "Reporte enviado +5 NP");
                 this.pendingPinType = null;
                 document.getElementById('selection-banner').classList.add('hidden');
             },
 
-            centerMap() { if (this.userMarker) this.map.setView(this.userMarker.getLatLng(), 16); },
+            updatePointsUI() {
+                document.getElementById('pointsDisplay').textContent = `${this.nexoPoints} NP`;
+                document.getElementById('profilePoints').textContent = `${this.nexoPoints} NP`;
+            },
 
+            saveStats() { localStorage.setItem('nexoPoints', this.nexoPoints); },
+            centerMap() { if (this.userMarker) this.map.setView(this.userMarker.getLatLng(), 16); },
+            toggleTheme() {
+                this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                document.documentElement.className = this.theme;
+                document.getElementById('theme-icon').textContent = this.theme === 'dark' ? '🌙' : '☀️';
+                localStorage.setItem('nexoTheme', this.theme);
+                this.updateMapTheme();
+            },
+            toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); },
+            closeModalOnBackdrop(e, id) { if (e.target.id === id) this.toggleModal(id); },
             showNotify(title, text) {
                 const container = document.getElementById('notif-container');
                 const n = document.createElement('div');
-                n.className = 'glass p-3 rounded-xl border-l-4 border-neonPurple animate-slideUp pointer-events-auto';
-                n.innerHTML = `<div class="text-[10px] font-bold text-neonPurple">${title}</div><div class="text-xs">${text}</div>`;
+                n.className = 'glass p-4 rounded-xl border-l-4 border-neonPurple modal-active shadow-xl';
+                n.innerHTML = `<div class="text-[10px] font-bold text-neonPurple uppercase">${title}</div><div class="text-xs font-bold">${text}</div>`;
                 container.appendChild(n);
-                setTimeout(() => n.remove(), 4000);
+                setTimeout(() => n.remove(), 3500);
             },
-
-            toggleTheme() { /* Lógica de tema */ },
-            toggleModal(id) { /* Lógica de modales */ }
+            buyWithPoints(item, cost) {
+                if (this.nexoPoints >= cost) {
+                    this.nexoPoints -= cost; this.saveStats(); this.updatePointsUI();
+                    this.showNotify("TIENDA", `Canjeaste ${item}`);
+                } else this.showNotify("ERROR", "Puntos insuficientes");
+            },
+            buyWithSoles(item, p) { window.open(`https://wa.me/51999999999?text=Quiero ${item} por S/${p}`); },
+            logout() { localStorage.removeItem('nexoUserName'); location.reload(); }
         };
 
         window.onload = () => app.init();
