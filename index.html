@@ -7,34 +7,79 @@
     <title>NEXO | Rider Intelligence Network</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: { 
                 extend: { 
-                    colors: { neonPurple: '#9D00FF', neonBlue: '#00D1FF' },
-                    animation: { 'bounce-slow': 'bounce 2s infinite' }
+                    colors: { 
+                        neonPurple: '#9D00FF', 
+                        neonBlue: '#00D1FF' 
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 2s infinite',
+                    }
                 } 
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-        :root { --neon-purple: #9D00FF; --deep-black: #050505; }
+        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Rajdhani:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root { 
+            --neon-purple: #9D00FF; 
+            --deep-black: #050505;
+            --transition-speed: 0.3s;
+        }
+        
         * { -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Rajdhani', sans-serif; overflow: hidden; touch-action: manipulation; overscroll-behavior: none; }
-        #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
-        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(0, 0, 0, 0.1); }
-        .dark .glass { background: rgba(15, 15, 15, 0.85); border: 1px solid rgba(157, 0, 255, 0.3); }
-        .ui-element { z-index: 1000; position: relative; }
+        
+        body { 
+            font-family: 'Rajdhani', sans-serif; 
+            overflow: hidden; 
+            touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+        
+        #map { 
+            height: 100vh; 
+            width: 100vw; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1;
+        }
+        
+        .glass { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark .glass { 
+            background: rgba(15, 15, 15, 0.85); 
+            border: 1px solid rgba(157, 0, 255, 0.3);
+        }
+        
+        .neo-button { transition: transform 0.15s ease; will-change: transform; }
         .neo-button:active { transform: scale(0.94); }
+        
+        .ui-element { z-index: 1000; position: relative; }
+        
+        @keyframes slideUp { 
+            from { transform: translateY(100%); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
+        }
+        
         .modal-active { animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        /* Estilos para ocultar el panel de control de ruta de Leaflet */
-        .leaflet-routing-container { display: none !important; }
+        
+        .pulse-ring { animation: pulse-glow 2s infinite; }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(157, 0, 255, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(157, 0, 255, 0.8); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-gray-100">
@@ -61,25 +106,19 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="app.toggleRoutePanel()" class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-neonBlue flex items-center justify-center neo-button">🛣️</button>
-                    <button onclick="app.toggleTheme()" class="w-10 h-10 rounded-full bg-slate-200 dark:bg-zinc-800 neo-button"><span id="theme-icon">🌙</span></button>
+                    <button onclick="app.toggleModal('info-modal')" class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-neonBlue font-bold neo-button">ℹ️</button>
+                    <button onclick="app.toggleTheme()" class="w-10 h-10 rounded-full bg-slate-200 dark:bg-zinc-800 neo-button">
+                        <span id="theme-icon">🌙</span>
+                    </button>
                 </div>
-            </div>
-
-            <div id="route-panel" class="hidden mt-3 glass rounded-2xl p-4 space-y-3">
-                <div class="flex gap-2">
-                    <input id="destination-input" type="text" placeholder="Ingresa destino o toca el mapa" class="flex-1 bg-white dark:bg-black/40 border border-slate-300 dark:border-white/10 p-3 rounded-xl text-sm outline-none focus:border-neonPurple">
-                    <button onclick="app.clearRoute()" class="px-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl font-bold">✕</button>
-                </div>
-                <button onclick="app.calculateRoute()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest">TRAZAR RUTA</button>
             </div>
         </header>
 
         <div id="map"></div>
 
         <div id="selection-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-[2000] hidden">
-            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl animate-pulse">
-                📍 TOCA EL MAPA PARA EL PIN
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl pulse-ring">
+                📍 TOCA EL MAPA PARA COLOCAR EL PIN
             </div>
         </div>
 
@@ -101,17 +140,26 @@
         </footer>
     </div>
 
+    <div id="info-modal" class="fixed inset-0 z-[4000] hidden bg-black/60 backdrop-blur-sm" onclick="app.closeModalOnBackdrop(event, 'info-modal')">
+        <div class="absolute bottom-0 w-full glass rounded-t-[2.5rem] p-8 modal-active" onclick="event.stopPropagation()">
+            <h2 class="text-2xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">INFORMACIÓN</h2>
+            <p class="text-sm mb-4">Reporta incidentes en tiempo real para ayudar a otros riders y ganar Nexo Points (NP).</p>
+            <button onclick="app.toggleModal('info-modal')" class="w-full bg-purple-600 text-white py-4 rounded-xl font-bold">CERRAR</button>
+        </div>
+    </div>
+
     <div id="store-modal" class="fixed inset-0 z-[4000] hidden bg-black/60 backdrop-blur-sm" onclick="app.closeModalOnBackdrop(event, 'store-modal')">
         <div class="absolute bottom-0 w-full glass rounded-t-[2.5rem] p-8 modal-active max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
-            <h2 class="text-2xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 uppercase">NEXO STORE</h2>
-            <div class="bg-slate-100 dark:bg-zinc-900 p-5 rounded-2xl border-2 border-slate-200 dark:border-zinc-800 mb-4">
-                <p class="font-bold">Mochila Nexo Pro</p>
-                <div class="flex gap-3 mt-4">
-                    <button onclick="app.buyWithPoints('Mochila', 500)" class="flex-1 bg-purple-600 text-white py-3 rounded-xl text-xs font-bold">500 NP</button>
-                    <button onclick="app.buyWithSoles('Mochila', 200)" class="flex-1 bg-green-600 text-white py-3 rounded-xl text-xs font-bold">S/ 200</button>
+            <h2 class="text-2xl font-black mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 italic">NEXO STORE</h2>
+            <div class="space-y-4">
+                <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                    <p class="font-bold">Mochila Nexo Pro</p>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="app.buyWithPoints('Mochila', 500)" class="flex-1 bg-purple-600 text-white py-2 rounded-lg text-xs font-bold">500 NP</button>
+                        <button onclick="app.buyWithSoles('Mochila', 200)" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-xs font-bold">S/ 200</button>
+                    </div>
                 </div>
             </div>
-            <button onclick="app.toggleModal('store-modal')" class="w-full py-4 text-sm opacity-50">CERRAR TIENDA</button>
         </div>
     </div>
 
@@ -121,32 +169,39 @@
                 <img id="profileAvatar" class="w-24 h-24 rounded-full border-4 border-purple-500 mx-auto mb-4">
                 <h3 id="profileName" class="text-xl font-bold uppercase">...</h3>
                 <p id="profilePoints" class="text-3xl font-black text-neonBlue mt-2">0 NP</p>
+                <div class="mt-6 p-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex justify-between">
+                    <span>Reportes:</span>
+                    <span id="totalReports" class="font-bold">0</span>
+                </div>
                 <button onclick="app.logout()" class="w-full bg-red-600 text-white py-4 rounded-xl font-bold mt-6">CERRAR SESIÓN</button>
             </div>
         </div>
     </div>
 
-    <div id="notif-container" class="fixed top-28 left-4 right-4 z-[6000] pointer-events-none flex flex-col gap-2"></div>
+    <div id="notif-container" class="fixed top-28 left-4 right-4 z-[5000] pointer-events-none flex flex-col gap-2"></div>
 
     <script>
         const app = {
             map: null, userMarker: null, theme: localStorage.getItem('nexoTheme') || 'dark',
             nexoPoints: parseInt(localStorage.getItem('nexoPoints')) || 0,
+            totalReports: parseInt(localStorage.getItem('totalReports')) || 0,
             userName: localStorage.getItem('nexoUserName') || '',
-            routingControl: null, pendingPinType: null, tileLayer: null, routeMode: false,
+            pendingPinType: null, tileLayer: null, markers: [],
 
-            init() { 
-                document.documentElement.className = this.theme;
-                if (this.userName) this.showMainUI(); 
+            init() {
+                this.loadTheme();
+                if (this.userName) this.autoLogin();
             },
 
             registerUser() {
                 const name = document.getElementById('userName').value.trim();
-                if (name.length < 2) return;
+                if (name.length < 2) return alert("ID muy corto");
                 this.userName = name;
                 localStorage.setItem('nexoUserName', name);
                 this.showMainUI();
             },
+
+            autoLogin() { this.showMainUI(); },
 
             showMainUI() {
                 document.getElementById('userNameDisplay').textContent = this.userName;
@@ -163,15 +218,8 @@
                 if (this.map) return;
                 this.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.043, -77.028], 14);
                 this.updateMapTheme();
+                this.map.on('click', (e) => this.handleMapClick(e));
                 this.getUserLocation();
-                
-                this.map.on('click', (e) => {
-                    if (this.routeMode) {
-                        this.calculateRoute(e.latlng);
-                    } else if (this.pendingPinType) {
-                        this.handleReportClick(e.latlng);
-                    }
-                });
             },
 
             updateMapTheme() {
@@ -189,70 +237,38 @@
                 });
             },
 
-            // --- LÓGICA DE RUTAS ---
-            toggleRoutePanel() {
-                this.routeMode = !this.routeMode;
-                document.getElementById('route-panel').classList.toggle('hidden');
-                this.showNotify("NAVEGACIÓN", this.routeMode ? "Toca el mapa para destino o escribe" : "Modo ruta desactivado");
+            handleMapClick(e) {
+                if (!this.pendingPinType) return;
+                const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
+                const icon = L.divIcon({ html: `<div class="text-3xl animate-bounce-slow">${icons[this.pendingPinType]}</div>`, className: 'custom-pin' });
+                L.marker(e.latlng, { icon }).addTo(this.map);
+                this.nexoPoints += 5; this.totalReports += 1;
+                this.updatePointsUI(); this.saveStats();
+                this.showNotify("ÉXITO", `Reporte enviado +5 NP`);
+                this.pendingPinType = null;
+                document.getElementById('selection-banner').classList.add('hidden');
             },
 
-            calculateRoute(destLatLng = null) {
-                if (!this.userMarker) return alert("Buscando tu GPS...");
-                if (this.routingControl) this.map.removeControl(this.routingControl);
-
-                const destination = destLatLng || document.getElementById('destination-input').value;
-                if (!destination) return;
-
-                this.routingControl = L.Routing.control({
-                    waypoints: [this.userMarker.getLatLng(), destination],
-                    routeWhileDragging: false,
-                    lineOptions: {
-                        styles: [{ color: '#9D00FF', weight: 7, opacity: 0.9 }] // Morado para la principal
-                    },
-                    altLineOptions: {
-                        styles: [{ color: '#FF0000', weight: 5, opacity: 0.6 }] // Rojo para alternativas
-                    },
-                    show: false,
-                    addWaypoints: false,
-                    createMarker: () => null // No crea marcadores de ruta feos
-                }).addTo(this.map);
-
-                this.routingControl.on('routesfound', (e) => {
-                    const dist = (e.routes[0].summary.totalDistance / 1000).toFixed(1);
-                    this.showNotify("RUTA", `Distancia: ${dist} km`);
-                });
-            },
-
-            clearRoute() {
-                if (this.routingControl) this.map.removeControl(this.routingControl);
-                document.getElementById('destination-input').value = "";
-            },
-
-            // --- REPORTE ---
             startPinSelection(type) {
                 this.pendingPinType = type;
                 document.getElementById('selection-banner').classList.remove('hidden');
             },
 
-            handleReportClick(latlng) {
-                const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
-                const icon = L.divIcon({ html: `<div class="text-3xl animate-bounce-slow">${icons[this.pendingPinType]}</div>`, className: 'custom-pin' });
-                L.marker(latlng, { icon }).addTo(this.map);
-                this.nexoPoints += 5;
-                this.updatePointsUI();
-                this.saveStats();
-                this.showNotify("ÉXITO", "Reporte enviado +5 NP");
-                this.pendingPinType = null;
-                document.getElementById('selection-banner').classList.add('hidden');
-            },
-
             updatePointsUI() {
                 document.getElementById('pointsDisplay').textContent = `${this.nexoPoints} NP`;
                 document.getElementById('profilePoints').textContent = `${this.nexoPoints} NP`;
+                document.getElementById('totalReports').textContent = this.totalReports;
             },
 
-            saveStats() { localStorage.setItem('nexoPoints', this.nexoPoints); },
-            centerMap() { if (this.userMarker) this.map.setView(this.userMarker.getLatLng(), 16); },
+            saveStats() {
+                localStorage.setItem('nexoPoints', this.nexoPoints);
+                localStorage.setItem('totalReports', this.totalReports);
+            },
+
+            toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); },
+
+            closeModalOnBackdrop(e, id) { if (e.target.id === id) this.toggleModal(id); },
+
             toggleTheme() {
                 this.theme = this.theme === 'dark' ? 'light' : 'dark';
                 document.documentElement.className = this.theme;
@@ -260,23 +276,31 @@
                 localStorage.setItem('nexoTheme', this.theme);
                 this.updateMapTheme();
             },
-            toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); },
-            closeModalOnBackdrop(e, id) { if (e.target.id === id) this.toggleModal(id); },
-            showNotify(title, text) {
-                const container = document.getElementById('notif-container');
-                const n = document.createElement('div');
-                n.className = 'glass p-4 rounded-xl border-l-4 border-neonPurple modal-active shadow-xl';
-                n.innerHTML = `<div class="text-[10px] font-bold text-neonPurple uppercase">${title}</div><div class="text-xs font-bold">${text}</div>`;
-                container.appendChild(n);
-                setTimeout(() => n.remove(), 3500);
-            },
+
+            loadTheme() { document.documentElement.className = this.theme; },
+
             buyWithPoints(item, cost) {
                 if (this.nexoPoints >= cost) {
                     this.nexoPoints -= cost; this.saveStats(); this.updatePointsUI();
-                    this.showNotify("TIENDA", `Canjeaste ${item}`);
+                    this.showNotify("COMPRA", `Has canjeado ${item}`);
                 } else this.showNotify("ERROR", "Puntos insuficientes");
             },
-            buyWithSoles(item, p) { window.open(`https://wa.me/51999999999?text=Quiero ${item} por S/${p}`); },
+
+            buyWithSoles(item, price) {
+                window.open(`https://wa.me/51999999999?text=Hola, quiero comprar ${item} por S/${price}. Mi ID: ${this.userName}`);
+            },
+
+            showNotify(title, text) {
+                const container = document.getElementById('notif-container');
+                const n = document.createElement('div');
+                n.className = 'glass p-4 rounded-xl border-l-4 border-neonPurple modal-active';
+                n.innerHTML = `<div class="text-[10px] font-bold text-neonPurple">${title}</div><div class="text-xs">${text}</div>`;
+                container.appendChild(n);
+                setTimeout(() => n.remove(), 3000);
+            },
+
+            centerMap() { if (this.userMarker) this.map.setView(this.userMarker.getLatLng(), 16); },
+
             logout() { localStorage.removeItem('nexoUserName'); location.reload(); }
         };
 
