@@ -24,36 +24,15 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Rajdhani:wght@400;600;700&display=swap');
-        
-        body { font-family: 'Rajdhani', sans-serif; overscroll-behavior: none; }
+        body { font-family: 'Rajdhani', sans-serif; overscroll-behavior: none; background: #000; }
         .font-syncopate { font-family: 'Syncopate', sans-serif; }
-        
         #map { height: 100vh; width: 100vw; z-index: 1; background: #050505; }
-        
-        .glass { 
-            background: rgba(255, 255, 255, 0.8); 
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .dark .glass { 
-            background: rgba(10, 10, 10, 0.8); 
-            border: 1px solid rgba(157, 0, 255, 0.2);
-        }
-
-        /* Estilo para el marcador del usuario */
-        .user-location-marker {
-            background: #00D1FF;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #00D1FF;
-        }
-
-        .custom-pin { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .dark .glass { background: rgba(10, 10, 10, 0.8); border: 1px solid rgba(157, 0, 255, 0.2); }
+        .user-location-marker { background: #00D1FF; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px #00D1FF; }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-black text-slate-900 dark:text-gray-100 overflow-hidden">
+<body class="text-slate-900 dark:text-gray-100 overflow-hidden">
 
     <div id="login-screen" class="fixed inset-0 z-[9999] bg-black flex flex-col justify-center items-center p-6 transition-transform duration-700">
         <div class="text-center mb-12 animate-pulse-slow">
@@ -62,7 +41,7 @@
         </div>
         <div class="w-full max-w-xs space-y-4">
             <input id="userName" type="text" placeholder="ID OPERADOR" class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-2xl text-white text-center font-mono focus:border-neonPurple outline-none transition-all">
-            <button onclick="app.registerUser()" class="w-full bg-neonPurple py-4 rounded-2xl font-bold text-white shadow-[0_0_20px_rgba(157,0,0,0.4)] active:scale-95 transition-transform">INICIAR SESIÓN</button>
+            <button onclick="app.registerUser()" class="w-full bg-neonPurple py-4 rounded-2xl font-bold text-white shadow-[0_0_20px_rgba(157,0,0,0.4)] active:scale-95 transition-transform">ENTRAR AL SISTEMA</button>
         </div>
     </div>
 
@@ -76,11 +55,9 @@
                         <span id="pointsDisplay" class="text-neonBlue font-mono text-[10px] font-bold">0 NP</span>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="app.toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                        <span id="theme-icon">🌙</span>
-                    </button>
-                </div>
+                <button onclick="app.toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900/50 border border-zinc-800">
+                    <span id="theme-icon">🌙</span>
+                </button>
             </div>
         </header>
 
@@ -100,82 +77,91 @@
 
         <footer class="fixed bottom-8 left-0 w-full z-[1000] px-6">
             <div class="max-w-md mx-auto flex justify-between items-center">
-                <button onclick="app.toggleModal('store-modal')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-xl">🛒</button>
-                
-                <button onclick="app.centerMap()" class="w-16 h-16 bg-white dark:bg-neonPurple rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] border-4 border-zinc-900">
-                    <span class="text-2xl dark:text-white text-black">🎯</span>
+                <button onclick="app.toggleModal('store-modal')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-lg">🛒</button>
+                <button onclick="app.centerMap()" class="w-16 h-16 bg-neonPurple rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] border-4 border-zinc-900 active:scale-90 transition-transform">
+                    <span class="text-2xl text-white">🎯</span>
                 </button>
-
-                <button onclick="app.toggleModal('profile-modal')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-xl">👤</button>
+                <button onclick="app.toggleModal('profile-modal')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-lg">👤</button>
             </div>
         </footer>
     </div>
 
-    <div id="notif-container" class="fixed top-28 left-4 right-4 z-[5000] pointer-events-none flex flex-col gap-2"></div>
-
     <div id="store-modal" class="fixed inset-0 z-[6000] hidden bg-black/80 backdrop-blur-md flex items-end">
-        <div class="w-full glass rounded-t-[3rem] p-10 transform transition-transform">
+        <div class="w-full glass rounded-t-[3rem] p-8 max-h-[85vh] overflow-y-auto">
             <div class="w-12 h-1.5 bg-zinc-500/30 mx-auto mb-6 rounded-full"></div>
-            <h2 class="text-2xl font-bold mb-6 italic">NEXO MARKET</h2>
-            <div class="bg-zinc-100 dark:bg-zinc-900/50 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-                <div>
-                    <p class="font-bold">Upgrade Rango</p>
-                    <p class="text-xs opacity-50">Sube tu prioridad de reporte</p>
+            <h2 class="text-2xl font-bold mb-6 italic tracking-tighter">NEXO STORE</h2>
+            
+            <div class="space-y-4">
+                <div class="bg-zinc-100 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="font-bold text-lg">Mochila Nexo Pro</p>
+                            <p class="text-xs opacity-50">Térmica e impermeable, edición Rider</p>
+                        </div>
+                        <span class="text-neonBlue font-bold text-sm">S/ 200</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="app.buyWithPoints('Mochila Nexo Pro', 500)" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-[10px] font-black tracking-widest uppercase">500 NP</button>
+                        <button onclick="app.buyWithSoles('Mochila Nexo Pro', 200)" class="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black tracking-widest uppercase">WhatsApp</button>
+                    </div>
                 </div>
-                <button onclick="app.buyWithPoints('Upgrade', 1000)" class="bg-neonBlue text-black px-4 py-2 rounded-xl font-bold text-xs">1000 NP</button>
+
+                <div class="bg-zinc-100 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                    <p class="font-bold text-lg">Casco Certificado</p>
+                    <p class="text-xs opacity-50 mb-3">Seguridad máxima con logo Nexo</p>
+                    <div class="flex gap-2">
+                        <button onclick="app.buyWithPoints('Casco Nexo', 1200)" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-[10px] font-black uppercase">1200 NP</button>
+                        <button onclick="app.buyWithSoles('Casco Nexo', 150)" class="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black uppercase">WhatsApp</button>
+                    </div>
+                </div>
             </div>
-            <button onclick="app.toggleModal('store-modal')" class="w-full mt-8 py-4 text-sm opacity-50 font-bold uppercase tracking-widest">Cerrar</button>
+
+            <button onclick="app.toggleModal('store-modal')" class="w-full mt-8 py-4 text-xs font-bold opacity-40 uppercase">Cerrar Tienda</button>
         </div>
     </div>
 
     <div id="profile-modal" class="fixed inset-0 z-[6000] hidden bg-black/80 backdrop-blur-md flex items-end">
         <div class="w-full glass rounded-t-[3rem] p-10">
             <div class="text-center">
-                <div class="relative inline-block">
-                    <img id="profileAvatar" class="w-20 h-20 rounded-full border-2 border-neonPurple mx-auto">
-                    <div class="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-4 border-black"></div>
-                </div>
-                <h3 id="profileName" class="text-xl font-bold mt-4 tracking-tighter uppercase">...</h3>
-                <div class="grid grid-cols-2 gap-4 mt-8">
+                <img id="profileAvatar" class="w-20 h-20 rounded-full border-2 border-neonPurple mx-auto mb-4">
+                <h3 id="profileName" class="text-xl font-bold uppercase tracking-tighter">...</h3>
+                <div class="grid grid-cols-2 gap-4 mt-8 text-left">
                     <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
-                        <span class="block text-[10px] opacity-50 uppercase">Puntos</span>
-                        <span id="profilePoints" class="text-xl font-bold text-neonBlue">0</span>
+                        <span class="block text-[10px] opacity-50 uppercase">Balance</span>
+                        <span id="profilePoints" class="text-xl font-bold text-neonBlue">0 NP</span>
                     </div>
                     <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
-                        <span class="block text-[10px] opacity-50 uppercase">Reportes</span>
+                        <span class="block text-[10px] opacity-50 uppercase">Aportes</span>
                         <span id="totalReports" class="text-xl font-bold text-neonPurple">0</span>
                     </div>
                 </div>
-                <button onclick="app.logout()" class="w-full bg-red-500/10 text-red-500 py-4 rounded-2xl font-bold mt-8 text-xs border border-red-500/20">CERRAR SESIÓN</button>
-                <button onclick="app.toggleModal('profile-modal')" class="w-full mt-4 py-2 text-xs opacity-40 font-bold uppercase">Volver</button>
+                <button onclick="app.logout()" class="w-full text-red-500 py-4 font-bold mt-8 text-xs">CERRAR SESIÓN</button>
+                <button onclick="app.toggleModal('profile-modal')" class="w-full mt-2 py-2 text-[10px] opacity-30 font-bold uppercase">Cerrar</button>
             </div>
         </div>
     </div>
 
+    <div id="notif-container" class="fixed top-28 left-4 right-4 z-[5000] pointer-events-none flex flex-col gap-2"></div>
+
     <script>
         const app = {
-            map: null,
-            userMarker: null,
-            watchId: null,
+            map: null, userMarker: null, watchId: null,
             theme: localStorage.getItem('nexoTheme') || 'dark',
             nexoPoints: parseInt(localStorage.getItem('nexoPoints')) || 0,
             totalReports: parseInt(localStorage.getItem('totalReports')) || 0,
             userName: localStorage.getItem('nexoUserName') || '',
             reports: JSON.parse(localStorage.getItem('nexoReports')) || [],
-            pendingPinType: null,
-            tileLayer: null,
+            pendingPinType: null, tileLayer: null,
+            WHATSAPP_NUMBER: '51931574267',
 
             init() {
                 document.documentElement.className = this.theme;
-                if (this.userName) {
-                    this.showMainUI();
-                }
+                if (this.userName) this.showMainUI();
             },
 
             registerUser() {
-                const input = document.getElementById('userName');
-                const name = input.value.trim();
-                if (name.length < 3) return this.showNotify("ERROR", "ID demasiado corto");
+                const name = document.getElementById('userName').value.trim();
+                if (name.length < 3) return this.showNotify("ERROR", "ID MUY CORTO");
                 this.userName = name;
                 localStorage.setItem('nexoUserName', name);
                 this.showMainUI();
@@ -184,11 +170,9 @@
             showMainUI() {
                 document.getElementById('userNameDisplay').textContent = this.userName;
                 document.getElementById('profileName').textContent = this.userName;
-                
                 const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${this.userName}`;
                 document.getElementById('userAvatar').src = avatar;
                 document.getElementById('profileAvatar').src = avatar;
-
                 document.getElementById('login-screen').classList.add('-translate-y-full');
                 const main = document.getElementById('main-ui');
                 main.classList.remove('invisible');
@@ -201,16 +185,9 @@
 
             initMap() {
                 if (this.map) return;
-                
-                this.map = L.map('map', { 
-                    zoomControl: false, 
-                    attributionControl: false,
-                    maxZoom: 18
-                }).setView([-12.043, -77.028], 14);
-
+                this.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.043, -77.028], 14);
                 this.updateMapTheme();
                 this.loadSavedReports();
-                
                 this.map.on('click', (e) => this.handleMapClick(e));
                 this.startTracking();
             },
@@ -222,22 +199,15 @@
             },
 
             startTracking() {
-                if ("geolocation" in navigator) {
+                if (navigator.geolocation) {
                     this.watchId = navigator.geolocation.watchPosition(
                         (pos) => {
-                            const latlng = [pos.coords.latitude, pos.coords.longitude];
+                            const ll = [pos.coords.latitude, pos.coords.longitude];
                             if (!this.userMarker) {
-                                this.userMarker = L.circleMarker(latlng, {
-                                    radius: 10,
-                                    className: 'user-location-marker'
-                                }).addTo(this.map);
-                                this.map.setView(latlng, 16);
-                            } else {
-                                this.userMarker.setLatLng(latlng);
-                            }
-                        },
-                        (err) => this.showNotify("GPS", "Activa el GPS para usar NEXO"),
-                        { enableHighAccuracy: true }
+                                this.userMarker = L.circleMarker(ll, { radius: 10, className: 'user-location-marker' }).addTo(this.map);
+                                this.map.setView(ll, 16);
+                            } else this.userMarker.setLatLng(ll);
+                        }, null, { enableHighAccuracy: true }
                     );
                 }
             },
@@ -245,52 +215,32 @@
             startPinSelection(type) {
                 this.pendingPinType = type;
                 document.getElementById('selection-banner').classList.remove('hidden');
-                this.showNotify("MODO REPORTE", "Toca el lugar exacto en el mapa");
             },
 
             handleMapClick(e) {
                 if (!this.pendingPinType) return;
-
-                const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
-                const newReport = {
-                    lat: e.latlng.lat,
-                    lng: e.latlng.lng,
-                    type: this.pendingPinType,
-                    id: Date.now()
-                };
-
+                const newReport = { lat: e.latlng.lat, lng: e.latlng.lng, type: this.pendingPinType, id: Date.now() };
                 this.addMarkerToMap(newReport);
                 this.reports.push(newReport);
                 localStorage.setItem('nexoReports', JSON.stringify(this.reports));
-
-                this.nexoPoints += 10;
-                this.totalReports += 1;
-                this.saveStats();
-                this.updatePointsUI();
-                
-                this.showNotify("REPORTE ENVIADO", "+10 NP ganados");
+                this.nexoPoints += 10; this.totalReports += 1;
+                this.saveStats(); this.updatePointsUI();
+                this.showNotify("ÉXITO", "REPORTE ENVIADO +10 NP");
                 this.pendingPinType = null;
                 document.getElementById('selection-banner').classList.add('hidden');
             },
 
-            addMarkerToMap(report) {
+            addMarkerToMap(r) {
                 const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
-                const icon = L.divIcon({
-                    html: `<div class="text-3xl animate-bounce custom-pin">${icons[report.type]}</div>`,
-                    className: 'custom-pin-container',
-                    iconSize: [30, 30]
-                });
-                L.marker([report.lat, report.lng], { icon }).addTo(this.map)
-                 .bindPopup(`<div class="text-black font-bold">Reportado por: ${this.userName}</div>`);
+                const icon = L.divIcon({ html: `<div class="text-3xl animate-bounce">${icons[r.type]}</div>`, className: 'pin', iconSize: [30, 30] });
+                L.marker([r.lat, r.lng], { icon }).addTo(this.map);
             },
 
-            loadSavedReports() {
-                this.reports.forEach(r => this.addMarkerToMap(r));
-            },
+            loadSavedReports() { this.reports.forEach(r => this.addMarkerToMap(r)); },
 
             updatePointsUI() {
                 document.getElementById('pointsDisplay').textContent = `${this.nexoPoints} NP`;
-                document.getElementById('profilePoints').textContent = this.nexoPoints;
+                document.getElementById('profilePoints').textContent = `${this.nexoPoints} NP`;
                 document.getElementById('totalReports').textContent = this.totalReports;
             },
 
@@ -299,45 +249,39 @@
                 localStorage.setItem('totalReports', this.totalReports);
             },
 
-            toggleModal(id) {
-                const modal = document.getElementById(id);
-                modal.classList.toggle('hidden');
-            },
+            toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); },
 
             toggleTheme() {
                 this.theme = this.theme === 'dark' ? 'light' : 'dark';
                 document.documentElement.className = this.theme;
-                document.getElementById('theme-icon').textContent = this.theme === 'dark' ? '🌙' : '☀️';
                 localStorage.setItem('nexoTheme', this.theme);
                 this.updateMapTheme();
+            },
+
+            buyWithPoints(item, cost) {
+                if (this.nexoPoints >= cost) {
+                    this.nexoPoints -= cost;
+                    this.saveStats(); this.updatePointsUI();
+                    this.showNotify("CANJEADO", `Has obtenido: ${item}`);
+                } else this.showNotify("ERROR", "NP INSUFICIENTES");
+            },
+
+            buyWithSoles(item, price) {
+                const msg = encodeURIComponent(`Hola NEXO, quiero comprar ${item} por S/${price}. Mi ID de operador es: ${this.userName}`);
+                window.open(`https://wa.me/${this.WHATSAPP_NUMBER}?text=${msg}`);
             },
 
             showNotify(title, text) {
                 const container = document.getElementById('notif-container');
                 const n = document.createElement('div');
-                n.className = 'glass p-4 rounded-2xl border-l-4 border-neonPurple shadow-2xl transition-all duration-500 transform translate-x-full';
+                n.className = 'glass p-4 rounded-2xl border-l-4 border-neonPurple shadow-2xl transition-all duration-500';
                 n.innerHTML = `<div class="text-[10px] font-black text-neonPurple uppercase">${title}</div><div class="text-xs font-semibold">${text}</div>`;
                 container.appendChild(n);
-                
-                setTimeout(() => n.classList.remove('translate-x-full'), 100);
-                setTimeout(() => {
-                    n.classList.add('opacity-0', '-translate-y-4');
-                    setTimeout(() => n.remove(), 500);
-                }, 4000);
+                setTimeout(() => { n.style.opacity = '0'; setTimeout(() => n.remove(), 500); }, 3000);
             },
 
-            centerMap() {
-                if (this.userMarker) {
-                    this.map.flyTo(this.userMarker.getLatLng(), 17);
-                }
-            },
-
-            logout() {
-                if(confirm("¿Cerrar sesión? Se perderán los reportes locales.")) {
-                    localStorage.clear();
-                    location.reload();
-                }
-            }
+            centerMap() { if (this.userMarker) this.map.flyTo(this.userMarker.getLatLng(), 17); },
+            logout() { localStorage.clear(); location.reload(); }
         };
 
         window.onload = () => app.init();
