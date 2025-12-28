@@ -9,170 +9,304 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: { 
                 extend: { 
-                    colors: { neonPurple: '#9D00FF', neonBlue: '#00D1FF' },
-                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' }
+                    colors: { 
+                        neonPurple: '#BC13FE', 
+                        neonBlue: '#00F0FF', 
+                        neonGreen: '#0AFF64',
+                        neonRed: '#FF2A6D',
+                        darkBg: '#050505'
+                    },
+                    fontFamily: {
+                        mono: ['Share Tech Mono', 'monospace'],
+                        sans: ['Rajdhani', 'sans-serif']
+                    },
+                    animation: { 
+                        'scan': 'scan 4s linear infinite',
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    }
                 } 
             }
         }
     </script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Rajdhani:wght@400;600;700&display=swap');
-        body { font-family: 'Rajdhani', sans-serif; overscroll-behavior: none; background: #000; }
-        .font-syncopate { font-family: 'Syncopate', sans-serif; }
-        #map { height: 100vh; width: 100vw; z-index: 1; background: #050505; }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .dark .glass { background: rgba(10, 10, 10, 0.8); border: 1px solid rgba(157, 0, 255, 0.2); }
-        .user-location-marker { background: #00D1FF; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px #00D1FF; }
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap');
+        
+        body { font-family: 'Rajdhani', sans-serif; background: #000; overflow: hidden; user-select: none; }
+        .font-tech { font-family: 'Share Tech Mono', monospace; }
+        
+        #map { height: 100vh; width: 100vw; z-index: 1; filter: saturate(1.2) contrast(1.1); }
+        
+        /* Glassmorphism avanzado */
+        .glass { 
+            background: rgba(10, 10, 10, 0.65); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .marker-icon { filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.6)); transition: all 0.3s ease; }
+        
+        /* Efecto de escaneo en el mapa */
+        .scan-line {
+            position: fixed; top: 0; left: 0; width: 100%; height: 5px;
+            background: rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.8);
+            z-index: 5; pointer-events: none; opacity: 0.3;
+            animation: scanLine 6s linear infinite;
+        }
+        @keyframes scanLine { 0% { top: -10%; opacity: 0; } 50% { opacity: 0.5; } 100% { top: 110%; opacity: 0; } }
+
+        /* Estilos de Moto Marker */
+        .moto-marker { transition: transform 0.5s linear; }
     </style>
 </head>
-<body class="text-slate-900 dark:text-gray-100 overflow-hidden">
+<body class="text-white">
 
-    <div id="login-screen" class="fixed inset-0 z-[9999] bg-black flex flex-col justify-center items-center p-6 transition-transform duration-700">
-        <div class="text-center mb-12 animate-pulse-slow">
-            <h1 class="text-6xl font-bold font-syncopate mb-2 text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPurple">NEXO</h1>
-            <p class="text-[10px] tracking-[0.4em] text-white/50 uppercase">Rider Intelligence System</p>
+    <div class="scan-line"></div>
+
+    <div id="login-screen" class="fixed inset-0 z-[9999] bg-darkBg flex flex-col justify-center items-center p-6 transition-transform duration-700 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+        
+        <div class="relative w-40 h-40 mb-10 flex items-center justify-center">
+            <div class="absolute inset-0 border-4 border-neonPurple rounded-full border-t-transparent animate-spin"></div>
+            <div class="absolute inset-2 border-2 border-neonBlue rounded-full border-b-transparent animate-spin" style="animation-duration: 3s"></div>
+            <i class="ph-fill ph-asterisk-simple text-6xl text-white animate-pulse"></i>
         </div>
-        <div class="w-full max-w-xs space-y-4">
-            <input id="userName" type="text" placeholder="ID OPERADOR" class="w-full bg-zinc-900 border border-zinc-800 p-4 rounded-2xl text-white text-center font-mono focus:border-neonPurple outline-none transition-all">
-            <button onclick="app.registerUser()" class="w-full bg-neonPurple py-4 rounded-2xl font-bold text-white shadow-[0_0_20px_rgba(157,0,0,0.4)] active:scale-95 transition-transform">ENTRAR AL SISTEMA</button>
+
+        <h1 class="text-5xl font-bold font-tech mb-2 tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neonBlue via-white to-neonPurple">NEXO</h1>
+        <p class="text-xs tracking-[0.6em] text-neonBlue/60 uppercase mb-12">System Link Established</p>
+
+        <div class="w-full max-w-xs space-y-4 relative z-10">
+            <div class="relative">
+                <i class="ph ph-user absolute left-4 top-4 text-gray-400"></i>
+                <input id="userName" type="text" placeholder="ID PILOTO" class="w-full bg-zinc-900/80 border border-zinc-800 p-4 pl-12 rounded-xl text-white font-tech tracking-widest focus:border-neonBlue focus:shadow-[0_0_15px_rgba(0,240,255,0.3)] outline-none transition-all uppercase">
+            </div>
+            <button onclick="app.registerUser()" class="w-full bg-gradient-to-r from-neonPurple to-blue-600 py-4 rounded-xl font-bold text-white tracking-widest shadow-[0_0_20px_rgba(188,19,254,0.4)] active:scale-95 transition-transform flex items-center justify-center gap-2">
+                <i class="ph-bold ph-power"></i> INICIAR MOTOR
+            </button>
         </div>
+        
+        <img src="https://cdn-icons-png.flaticon.com/512/3196/3196884.png" class="absolute bottom-0 opacity-10 w-full max-w-md filter grayscale brightness-50" alt="Moto">
     </div>
 
-    <div id="main-ui" class="invisible opacity-0 transition-all duration-1000">
-        <header class="fixed top-6 left-4 right-4 z-[1000]">
-            <div class="glass rounded-2xl p-3 flex justify-between items-center shadow-2xl">
-                <div class="flex items-center gap-3">
-                    <img id="userAvatar" class="w-10 h-10 rounded-full border border-neonPurple">
+    <div id="main-ui" class="invisible opacity-0 transition-all duration-1000 h-screen w-screen relative">
+        
+        <div class="fixed top-0 left-0 w-full z-[1000] p-4 flex justify-between items-start pointer-events-none">
+            <div class="glass px-4 py-2 rounded-br-2xl rounded-tl-xl border-l-4 border-neonPurple flex flex-col pointer-events-auto">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-neonPurple to-blue-500 rounded-lg p-[2px]">
+                        <img id="userAvatar" class="w-full h-full rounded-md bg-black object-cover">
+                    </div>
                     <div>
-                        <h2 id="userNameDisplay" class="font-bold text-xs uppercase tracking-tighter">---</h2>
-                        <span id="pointsDisplay" class="text-neonBlue font-mono text-[10px] font-bold">0 NP</span>
+                        <h2 id="userNameDisplay" class="font-bold text-sm text-neonBlue font-tech tracking-wider">PILOTO</h2>
+                        <div class="flex items-center gap-1">
+                            <i class="ph-fill ph-coin text-yellow-400 text-xs"></i>
+                            <span id="pointsDisplay" class="text-white font-mono text-xs font-bold">0 NP</span>
+                        </div>
                     </div>
                 </div>
-                <button onclick="app.toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900/50 border border-zinc-800">
-                    <span id="theme-icon">🌙</span>
-                </button>
             </div>
-        </header>
+
+            <div class="glass px-5 py-2 rounded-bl-2xl rounded-tr-xl border-r-4 border-neonBlue text-right flex flex-col items-end">
+                <div class="flex items-baseline gap-1">
+                    <span id="speedDisplay" class="text-4xl font-black font-tech text-white">0</span>
+                    <span class="text-[10px] text-gray-400 font-bold">KM/H</span>
+                </div>
+                <div class="flex items-center gap-2 text-[10px] text-gray-400 font-tech mt-[-4px]">
+                    <span id="weatherIcon">☁️ 21°C</span> | <span id="clockDisplay">12:00</span>
+                </div>
+            </div>
+        </div>
 
         <div id="map"></div>
 
-        <div id="selection-banner" class="fixed top-24 left-1/2 -translate-x-1/2 z-[1000] hidden pointer-events-none">
-            <div class="bg-neonPurple text-white px-6 py-2 rounded-full text-[10px] font-bold shadow-2xl animate-bounce">
-                📍 TOCA EL MAPA PARA REPORTAR
+        <div id="selection-banner" class="fixed top-32 left-1/2 -translate-x-1/2 z-[1000] hidden pointer-events-none w-max">
+            <div class="bg-black/80 backdrop-blur border border-neonRed text-white px-6 py-2 rounded-full text-xs font-bold shadow-[0_0_20px_rgba(255,42,109,0.5)] animate-pulse flex items-center gap-2">
+                <i class="ph-fill ph-map-pin"></i> TOCA EL MAPA PARA CONFIRMAR UBICACIÓN
             </div>
         </div>
 
-        <div class="fixed right-4 top-1/2 -translate-y-1/2 z-[1000] flex flex-col gap-4">
-            <button onclick="app.startPinSelection('POLICE')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xl active:scale-90 transition-transform">👮</button>
-            <button onclick="app.startPinSelection('ACCIDENT')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xl active:scale-90 transition-transform">🚨</button>
-            <button onclick="app.startPinSelection('TRAFFIC')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-xl active:scale-90 transition-transform">🚧</button>
+        <div class="fixed right-4 top-1/2 -translate-y-1/2 z-[1000] flex flex-col gap-4 pointer-events-auto">
+            <button onclick="app.startPinSelection('POLICE')" class="group relative w-12 h-12 bg-zinc-900/80 rounded-xl border border-blue-500/30 flex items-center justify-center shadow-lg active:scale-90 transition-all hover:border-blue-500 hover:shadow-[0_0_15px_blue]">
+                <span class="text-2xl">👮</span>
+                <span class="absolute right-14 bg-black px-2 py-1 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Operativo</span>
+            </button>
+            <button onclick="app.startPinSelection('ACCIDENT')" class="group relative w-12 h-12 bg-zinc-900/80 rounded-xl border border-red-500/30 flex items-center justify-center shadow-lg active:scale-90 transition-all hover:border-red-500 hover:shadow-[0_0_15px_red]">
+                <span class="text-2xl">🚨</span>
+                <span class="absolute right-14 bg-black px-2 py-1 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Accidente</span>
+            </button>
+            <button onclick="app.startPinSelection('TRAFFIC')" class="group relative w-12 h-12 bg-zinc-900/80 rounded-xl border border-yellow-500/30 flex items-center justify-center shadow-lg active:scale-90 transition-all hover:border-yellow-500 hover:shadow-[0_0_15px_orange]">
+                <span class="text-2xl">🚧</span>
+                <span class="absolute right-14 bg-black px-2 py-1 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Tráfico</span>
+            </button>
         </div>
 
-        <footer class="fixed bottom-8 left-0 w-full z-[1000] px-6">
-            <div class="max-w-md mx-auto flex justify-between items-center">
-                <button onclick="app.toggleModal('store-modal')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-lg">🛒</button>
-                <button onclick="app.centerMap()" class="w-16 h-16 bg-neonPurple rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] border-4 border-zinc-900 active:scale-90 transition-transform">
-                    <span class="text-2xl text-white">🎯</span>
+        <footer class="fixed bottom-6 left-4 right-4 z-[1000]">
+            <div class="glass rounded-2xl p-2 flex justify-between items-center max-w-md mx-auto shadow-2xl relative">
+                <button onclick="app.toggleModal('store-modal')" class="w-14 h-12 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:text-white transition-colors">
+                    <i class="ph ph-shopping-cart text-xl"></i>
+                    <span class="text-[8px] uppercase tracking-wider mt-1">Shop</span>
                 </button>
-                <button onclick="app.toggleModal('profile-modal')" class="glass w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-lg">👤</button>
+                
+                <div class="relative -top-6">
+                    <button onclick="app.centerMap()" class="w-16 h-16 bg-gradient-to-br from-zinc-800 to-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.8)] border-[3px] border-neonPurple active:scale-90 transition-transform group">
+                        <i class="ph-fill ph-navigation-arrow text-2xl text-white group-hover:text-neonBlue transition-colors"></i>
+                    </button>
+                    <div class="absolute inset-0 rounded-full border border-neonPurple/30 animate-ping -z-10"></div>
+                </div>
+
+                <button onclick="app.toggleModal('profile-modal')" class="w-14 h-12 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:text-white transition-colors">
+                    <i class="ph ph-user-gear text-xl"></i>
+                    <span class="text-[8px] uppercase tracking-wider mt-1">Perfil</span>
+                </button>
             </div>
         </footer>
     </div>
 
-    <div id="store-modal" class="fixed inset-0 z-[6000] hidden bg-black/80 backdrop-blur-md flex items-end">
-        <div class="w-full glass rounded-t-[3rem] p-8 max-h-[85vh] overflow-y-auto">
-            <div class="w-12 h-1.5 bg-zinc-500/30 mx-auto mb-6 rounded-full"></div>
-            <h2 class="text-2xl font-bold mb-6 italic tracking-tighter">NEXO STORE</h2>
+    <div id="store-modal" class="fixed inset-0 z-[6000] hidden bg-black/90 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#0a0a0a] rounded-[2rem] border border-zinc-800 p-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-neonPurple blur-[80px] opacity-20 pointer-events-none"></div>
             
-            <div class="space-y-4">
-                <div class="bg-zinc-100 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <p class="font-bold text-lg">Mochila Nexo Pro</p>
-                            <p class="text-xs opacity-50">Térmica e impermeable, edición Rider</p>
+            <h2 class="text-2xl font-bold font-tech mb-6 flex items-center gap-2">
+                <i class="ph-fill ph-storefront text-neonPurple"></i> NEXO GARAGE
+            </h2>
+            
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex gap-4">
+                    <div class="w-20 h-20 bg-black rounded-lg flex items-center justify-center border border-zinc-700">
+                        <span class="text-3xl">🎒</span>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-sm">Mochila Pro V2</h3>
+                            <span class="text-neonBlue font-mono text-xs">500 NP</span>
                         </div>
-                        <span class="text-neonBlue font-bold text-sm">S/ 200</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="app.buyWithPoints('Mochila Nexo Pro', 500)" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-[10px] font-black tracking-widest uppercase">500 NP</button>
-                        <button onclick="app.buyWithSoles('Mochila Nexo Pro', 200)" class="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black tracking-widest uppercase">WhatsApp</button>
+                        <p class="text-[10px] text-gray-500 mt-1 mb-3">Impermeable con LED trasero.</p>
+                        <div class="flex gap-2">
+                            <button onclick="app.buyWithPoints('Mochila Nexo', 500)" class="flex-1 bg-zinc-800 hover:bg-neonPurple/20 hover:text-neonPurple hover:border-neonPurple border border-transparent py-1.5 rounded-lg text-[10px] font-bold transition-all">CANJEAR</button>
+                            <button onclick="app.buyWithSoles('Mochila Nexo', 200)" class="flex-1 bg-green-900/30 text-green-400 border border-green-800 hover:bg-green-800 py-1.5 rounded-lg text-[10px] font-bold transition-all">S/ 200</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-zinc-100 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                    <p class="font-bold text-lg">Casco Certificado</p>
-                    <p class="text-xs opacity-50 mb-3">Seguridad máxima con logo Nexo</p>
-                    <div class="flex gap-2">
-                        <button onclick="app.buyWithPoints('Casco Nexo', 1200)" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-[10px] font-black uppercase">1200 NP</button>
-                        <button onclick="app.buyWithSoles('Casco Nexo', 150)" class="flex-1 bg-green-600 text-white py-2 rounded-xl text-[10px] font-black uppercase">WhatsApp</button>
+                <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex gap-4">
+                    <div class="w-20 h-20 bg-black rounded-lg flex items-center justify-center border border-zinc-700">
+                        <span class="text-3xl">🏍️</span>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-sm">Soporte Celular</h3>
+                            <span class="text-neonBlue font-mono text-xs">300 NP</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-1 mb-3">Antivibración metálico.</p>
+                        <div class="flex gap-2">
+                            <button onclick="app.buyWithPoints('Soporte Nexo', 300)" class="flex-1 bg-zinc-800 hover:bg-neonPurple/20 hover:text-neonPurple hover:border-neonPurple border border-transparent py-1.5 rounded-lg text-[10px] font-bold transition-all">CANJEAR</button>
+                            <button onclick="app.buyWithSoles('Soporte Nexo', 45)" class="flex-1 bg-green-900/30 text-green-400 border border-green-800 hover:bg-green-800 py-1.5 rounded-lg text-[10px] font-bold transition-all">S/ 45</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <button onclick="app.toggleModal('store-modal')" class="w-full mt-8 py-4 text-xs font-bold opacity-40 uppercase">Cerrar Tienda</button>
+            <button onclick="app.toggleModal('store-modal')" class="w-full mt-6 py-3 bg-zinc-800 rounded-xl text-xs font-bold hover:bg-zinc-700">CERRAR</button>
         </div>
     </div>
 
-    <div id="profile-modal" class="fixed inset-0 z-[6000] hidden bg-black/80 backdrop-blur-md flex items-end">
-        <div class="w-full glass rounded-t-[3rem] p-10">
-            <div class="text-center">
-                <img id="profileAvatar" class="w-20 h-20 rounded-full border-2 border-neonPurple mx-auto mb-4">
-                <h3 id="profileName" class="text-xl font-bold uppercase tracking-tighter">...</h3>
-                <div class="grid grid-cols-2 gap-4 mt-8 text-left">
-                    <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
-                        <span class="block text-[10px] opacity-50 uppercase">Balance</span>
-                        <span id="profilePoints" class="text-xl font-bold text-neonBlue">0 NP</span>
-                    </div>
-                    <div class="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
-                        <span class="block text-[10px] opacity-50 uppercase">Aportes</span>
-                        <span id="totalReports" class="text-xl font-bold text-neonPurple">0</span>
-                    </div>
+    <div id="profile-modal" class="fixed inset-0 z-[6000] hidden bg-black/90 backdrop-blur-md flex items-end sm:items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#0a0a0a] rounded-[2rem] border border-zinc-800 p-8 text-center relative">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-neonBlue to-neonPurple"></div>
+            
+            <img id="profileAvatar" class="w-24 h-24 rounded-2xl border-2 border-neonBlue mx-auto mb-4 bg-zinc-900 object-cover shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+            <h3 id="profileName" class="text-2xl font-bold font-tech text-white uppercase tracking-wider">PILOTO</h3>
+            <p class="text-xs text-gray-500 font-mono mb-6">NEXO ID: <span id="userIdDisplay">...</span></p>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+                    <div class="text-[10px] uppercase text-gray-500 mb-1">Puntos NP</div>
+                    <div id="profilePoints" class="text-2xl font-bold text-neonPurple font-mono">0</div>
                 </div>
-                <button onclick="app.logout()" class="w-full text-red-500 py-4 font-bold mt-8 text-xs">CERRAR SESIÓN</button>
-                <button onclick="app.toggleModal('profile-modal')" class="w-full mt-2 py-2 text-[10px] opacity-30 font-bold uppercase">Cerrar</button>
+                <div class="bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+                    <div class="text-[10px] uppercase text-gray-500 mb-1">Reputación</div>
+                    <div class="text-2xl font-bold text-neonGreen font-mono">100%</div>
+                </div>
             </div>
+
+            <div class="text-left mb-6">
+                <h4 class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Estado de verificación</h4>
+                <div id="pending-list" class="space-y-2 max-h-24 overflow-y-auto text-[10px]">
+                    <div class="text-gray-600 italic">No hay reportes en proceso...</div>
+                </div>
+            </div>
+
+            <button onclick="app.logout()" class="text-red-500 text-xs font-bold hover:text-red-400 tracking-widest border border-red-900/30 px-6 py-2 rounded-full">CERRAR SESIÓN</button>
+            <button onclick="app.toggleModal('profile-modal')" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i class="ph-bold ph-x"></i></button>
         </div>
     </div>
 
-    <div id="notif-container" class="fixed top-28 left-4 right-4 z-[5000] pointer-events-none flex flex-col gap-2"></div>
+    <div id="notif-container" class="fixed top-24 left-4 right-4 z-[5000] pointer-events-none flex flex-col gap-2"></div>
 
     <script>
         const app = {
-            map: null, userMarker: null, watchId: null,
-            theme: localStorage.getItem('nexoTheme') || 'dark',
+            map: null, 
+            userMarker: null, 
+            watchId: null,
             nexoPoints: parseInt(localStorage.getItem('nexoPoints')) || 0,
-            totalReports: parseInt(localStorage.getItem('totalReports')) || 0,
             userName: localStorage.getItem('nexoUserName') || '',
+            userId: localStorage.getItem('nexoUserId') || 'NX-' + Math.floor(Math.random()*10000),
             reports: JSON.parse(localStorage.getItem('nexoReports')) || [],
-            pendingPinType: null, tileLayer: null,
-            WHATSAPP_NUMBER: '51931574267',
+            pendingPinType: null,
+            WHATSAPP_NUMBER: '51931574267', // Tu número real
+            VERIFICATION_TIME_MS: 15 * 60 * 1000, // 15 Minutos REALES
 
             init() {
-                document.documentElement.className = this.theme;
-                if (this.userName) this.showMainUI();
+                if(!localStorage.getItem('nexoUserId')) localStorage.setItem('nexoUserId', this.userId);
+                
+                if (this.userName) {
+                    this.showMainUI();
+                }
+                
+                // Iniciar reloj HUD
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('clockDisplay').innerText = now.toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit'});
+                }, 1000);
+
+                // Iniciar ciclo de verificación de reportes
+                setInterval(() => this.checkPendingReports(), 30000); // Revisa cada 30 segundos
             },
 
             registerUser() {
                 const name = document.getElementById('userName').value.trim();
-                if (name.length < 3) return this.showNotify("ERROR", "ID MUY CORTO");
+                if (name.length < 3) return this.showNotify("ERROR", "ID DEBE TENER 3+ CARACTERES", "error");
+                
                 this.userName = name;
                 localStorage.setItem('nexoUserName', name);
+                
+                // Sonido de inicio (vibración)
+                if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                
                 this.showMainUI();
             },
 
             showMainUI() {
+                // UI Updates
                 document.getElementById('userNameDisplay').textContent = this.userName;
                 document.getElementById('profileName').textContent = this.userName;
-                const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${this.userName}`;
-                document.getElementById('userAvatar').src = avatar;
-                document.getElementById('profileAvatar').src = avatar;
+                document.getElementById('userIdDisplay').textContent = this.userId;
+                
+                // Generar Avatar consistente
+                const avatarUrl = `https://api.dicebear.com/7.x/notionists/svg?seed=${this.userName}&backgroundColor=b6e3f4`;
+                document.getElementById('userAvatar').src = avatarUrl;
+                document.getElementById('profileAvatar').src = avatarUrl;
+
+                // Animación de transición
                 document.getElementById('login-screen').classList.add('-translate-y-full');
                 const main = document.getElementById('main-ui');
                 main.classList.remove('invisible');
@@ -180,34 +314,61 @@
                     main.classList.add('opacity-100');
                     this.initMap();
                     this.updatePointsUI();
-                }, 300);
+                    this.renderPendingList();
+                }, 500);
             },
 
             initMap() {
                 if (this.map) return;
-                this.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-12.043, -77.028], 14);
-                this.updateMapTheme();
+                
+                // Estilo oscuro personalizado para Leaflet
+                this.map = L.map('map', { 
+                    zoomControl: false, 
+                    attributionControl: false 
+                }).setView([-12.0464, -77.0428], 15); // Lima
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 20
+                }).addTo(this.map);
+
                 this.loadSavedReports();
                 this.map.on('click', (e) => this.handleMapClick(e));
                 this.startTracking();
             },
 
-            updateMapTheme() {
-                const style = this.theme === 'dark' ? 'dark_all' : 'rastertiles/voyager';
-                if (this.tileLayer) this.map.removeLayer(this.tileLayer);
-                this.tileLayer = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`).addTo(this.map);
-            },
-
             startTracking() {
+                // Icono personalizado de Moto (SVG)
+                const motoIcon = L.divIcon({
+                    html: `<div class="relative w-12 h-12 flex items-center justify-center">
+                            <div class="absolute w-full h-full bg-neonBlue/30 rounded-full animate-ping"></div>
+                            <div class="w-8 h-8 bg-black border-2 border-neonBlue rounded-full flex items-center justify-center shadow-[0_0_10px_#00F0FF] z-10">
+                                <span class="text-sm">🏍️</span>
+                            </div>
+                           </div>`,
+                    className: 'moto-marker',
+                    iconSize: [48, 48],
+                    iconAnchor: [24, 24]
+                });
+
                 if (navigator.geolocation) {
                     this.watchId = navigator.geolocation.watchPosition(
                         (pos) => {
-                            const ll = [pos.coords.latitude, pos.coords.longitude];
+                            const { latitude, longitude, speed } = pos.coords;
+                            const ll = [latitude, longitude];
+
+                            // Actualizar Velocímetro
+                            const kmh = speed ? Math.round(speed * 3.6) : 0;
+                            document.getElementById('speedDisplay').innerText = kmh;
+
                             if (!this.userMarker) {
-                                this.userMarker = L.circleMarker(ll, { radius: 10, className: 'user-location-marker' }).addTo(this.map);
-                                this.map.setView(ll, 16);
-                            } else this.userMarker.setLatLng(ll);
-                        }, null, { enableHighAccuracy: true }
+                                this.userMarker = L.marker(ll, { icon: motoIcon }).addTo(this.map);
+                                this.map.setView(ll, 17);
+                            } else {
+                                this.userMarker.setLatLng(ll);
+                            }
+                        },
+                        (err) => console.log(err),
+                        { enableHighAccuracy: true, maximumAge: 0 }
                     );
                 }
             },
@@ -215,73 +376,225 @@
             startPinSelection(type) {
                 this.pendingPinType = type;
                 document.getElementById('selection-banner').classList.remove('hidden');
+                if(navigator.vibrate) navigator.vibrate(50);
             },
 
             handleMapClick(e) {
                 if (!this.pendingPinType) return;
-                const newReport = { lat: e.latlng.lat, lng: e.latlng.lng, type: this.pendingPinType, id: Date.now() };
+
+                const timestamp = Date.now();
+                const newReport = {
+                    id: timestamp,
+                    lat: e.latlng.lat, 
+                    lng: e.latlng.lng, 
+                    type: this.pendingPinType, 
+                    timestamp: timestamp,
+                    status: 'verifying' // pending verification
+                };
+
                 this.addMarkerToMap(newReport);
                 this.reports.push(newReport);
                 localStorage.setItem('nexoReports', JSON.stringify(this.reports));
-                this.nexoPoints += 10; this.totalReports += 1;
-                this.saveStats(); this.updatePointsUI();
-                this.showNotify("ÉXITO", "REPORTE ENVIADO +10 NP");
+                
+                // Feedback
+                this.showNotify("EN PROCESO", "Reporte enviado a verificación (15 min)", "info");
+                if(navigator.vibrate) navigator.vibrate(200);
+
                 this.pendingPinType = null;
                 document.getElementById('selection-banner').classList.add('hidden');
+                this.renderPendingList();
             },
 
             addMarkerToMap(r) {
                 const icons = { 'POLICE': '👮', 'ACCIDENT': '🚨', 'TRAFFIC': '🚧' };
-                const icon = L.divIcon({ html: `<div class="text-3xl animate-bounce">${icons[r.type]}</div>`, className: 'pin', iconSize: [30, 30] });
-                L.marker([r.lat, r.lng], { icon }).addTo(this.map);
+                const colors = { 'POLICE': 'text-blue-500', 'ACCIDENT': 'text-red-500', 'TRAFFIC': 'text-yellow-500' };
+                
+                // Si el reporte fue rechazado, no lo mostramos o lo mostramos gris
+                if(r.status === 'rejected') return; 
+
+                const opacity = r.status === 'verifying' ? 'opacity-50' : 'opacity-100';
+
+                const html = `
+                    <div class="flex flex-col items-center ${opacity}">
+                        <div class="text-3xl filter drop-shadow-lg animate-bounce ${colors[r.type]}">${icons[r.type]}</div>
+                        ${r.status === 'verifying' ? '<span class="text-[8px] bg-black text-white px-1 rounded border border-gray-500">VERIF...</span>' : ''}
+                    </div>
+                `;
+                
+                const icon = L.divIcon({ html: html, className: 'bg-transparent', iconSize: [40, 40], iconAnchor: [20, 40] });
+                const marker = L.marker([r.lat, r.lng], { icon }).addTo(this.map);
+
+                // Popup informativo
+                const timeStr = new Date(r.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                marker.bindPopup(`
+                    <div class="text-center font-sans text-black">
+                        <b class="uppercase">${r.type}</b><br>
+                        <span class="text-xs">Hora: ${timeStr}</span><br>
+                        <span class="text-[10px] ${r.status === 'verified' ? 'text-green-600 font-bold' : 'text-orange-500'}">
+                            Estado: ${r.status === 'verified' ? 'CONFIRMADO' : 'ANALIZANDO'}
+                        </span>
+                    </div>
+                `);
             },
 
-            loadSavedReports() { this.reports.forEach(r => this.addMarkerToMap(r)); },
+            // LÓGICA DE VERIFICACIÓN (El requisito de los 15 minutos)
+            checkPendingReports() {
+                const now = Date.now();
+                let changed = false;
+
+                this.reports.forEach(r => {
+                    if (r.status === 'verifying') {
+                        const timeDiff = now - r.timestamp;
+                        
+                        // Si han pasado 15 minutos (o más)
+                        if (timeDiff >= this.VERIFICATION_TIME_MS) {
+                            // SIMULACIÓN DE VERIFICACIÓN
+                            // En una app real, esto chequearía si otros usuarios confirmaron.
+                            // Aquí simulamos un 90% de probabilidad de éxito.
+                            const isReal = Math.random() > 0.1; 
+
+                            if (isReal) {
+                                r.status = 'verified';
+                                this.nexoPoints += 10; // DAR PUNTOS
+                                this.showNotify("REPORTE CONFIRMADO", "Has ganado +10 NP", "success");
+                            } else {
+                                r.status = 'rejected';
+                                this.showNotify("REPORTE DESCARTADO", "La comunidad no validó tu alerta", "error");
+                                // Remover marcador del mapa visualmente (requeriría recargar mapa o guardar ref, para simpleza recargamos al iniciar)
+                            }
+                            changed = true;
+                        }
+                    }
+                });
+
+                if (changed) {
+                    this.saveStats();
+                    this.updatePointsUI();
+                    this.renderPendingList();
+                    // Refrescar mapa para actualizar estados visuales (simple hack)
+                    this.map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker && layer !== this.userMarker) {
+                            this.map.removeLayer(layer);
+                        }
+                    });
+                    this.loadSavedReports();
+                }
+            },
+
+            loadSavedReports() { 
+                // Limpiar reportes viejos (> 2 horas) para no saturar
+                const twoHours = 2 * 60 * 60 * 1000;
+                this.reports = this.reports.filter(r => (Date.now() - r.timestamp) < twoHours);
+                localStorage.setItem('nexoReports', JSON.stringify(this.reports));
+                
+                this.reports.forEach(r => this.addMarkerToMap(r)); 
+            },
+
+            renderPendingList() {
+                const list = document.getElementById('pending-list');
+                const pending = this.reports.filter(r => r.status === 'verifying');
+                
+                if (pending.length === 0) {
+                    list.innerHTML = '<div class="text-gray-600 italic">No hay reportes en verificación.</div>';
+                    return;
+                }
+
+                list.innerHTML = pending.map(r => {
+                    const minLeft = Math.ceil((this.VERIFICATION_TIME_MS - (Date.now() - r.timestamp)) / 60000);
+                    return `
+                        <div class="flex justify-between items-center bg-zinc-900 p-2 rounded border-l-2 border-yellow-500">
+                            <span>${r.type === 'POLICE' ? '👮' : r.type === 'ACCIDENT' ? '🚨' : '🚧'} <span class="text-gray-300">${new Date(r.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></span>
+                            <span class="text-yellow-500 font-bold">~${minLeft} min</span>
+                        </div>
+                    `;
+                }).join('');
+            },
 
             updatePointsUI() {
                 document.getElementById('pointsDisplay').textContent = `${this.nexoPoints} NP`;
                 document.getElementById('profilePoints').textContent = `${this.nexoPoints} NP`;
-                document.getElementById('totalReports').textContent = this.totalReports;
             },
 
             saveStats() {
                 localStorage.setItem('nexoPoints', this.nexoPoints);
-                localStorage.setItem('totalReports', this.totalReports);
+                localStorage.setItem('nexoReports', JSON.stringify(this.reports));
             },
 
-            toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); },
-
-            toggleTheme() {
-                this.theme = this.theme === 'dark' ? 'light' : 'dark';
-                document.documentElement.className = this.theme;
-                localStorage.setItem('nexoTheme', this.theme);
-                this.updateMapTheme();
+            toggleModal(id) { 
+                const el = document.getElementById(id);
+                if (el.classList.contains('hidden')) {
+                    el.classList.remove('hidden');
+                    // Renderizar lista si abrimos perfil
+                    if(id === 'profile-modal') this.renderPendingList();
+                } else {
+                    el.classList.add('hidden');
+                }
             },
 
             buyWithPoints(item, cost) {
                 if (this.nexoPoints >= cost) {
-                    this.nexoPoints -= cost;
-                    this.saveStats(); this.updatePointsUI();
-                    this.showNotify("CANJEADO", `Has obtenido: ${item}`);
-                } else this.showNotify("ERROR", "NP INSUFICIENTES");
+                    if(confirm(`¿Gastar ${cost} NP en ${item}?`)) {
+                        this.nexoPoints -= cost;
+                        this.saveStats(); 
+                        this.updatePointsUI();
+                        this.showNotify("CANJE EXITOSO", `Código generado: NX-${Math.floor(Math.random()*9999)}`, "success");
+                    }
+                } else {
+                    this.showNotify("ERROR", "Saldo NP insuficiente", "error");
+                }
             },
 
             buyWithSoles(item, price) {
-                const msg = encodeURIComponent(`Hola NEXO, quiero comprar ${item} por S/${price}. Mi ID de operador es: ${this.userName}`);
+                const msg = encodeURIComponent(`Hola NEXO, deseo adquirir: ${item} (S/ ${price}). Mi ID: ${this.userId}`);
                 window.open(`https://wa.me/${this.WHATSAPP_NUMBER}?text=${msg}`);
             },
 
-            showNotify(title, text) {
+            showNotify(title, text, type = "normal") {
                 const container = document.getElementById('notif-container');
                 const n = document.createElement('div');
-                n.className = 'glass p-4 rounded-2xl border-l-4 border-neonPurple shadow-2xl transition-all duration-500';
-                n.innerHTML = `<div class="text-[10px] font-black text-neonPurple uppercase">${title}</div><div class="text-xs font-semibold">${text}</div>`;
+                
+                let borderColor = 'border-neonPurple';
+                if(type === 'success') borderColor = 'border-neonGreen';
+                if(type === 'error') borderColor = 'border-neonRed';
+
+                n.className = `glass p-4 rounded-xl border-l-4 ${borderColor} shadow-[0_5px_15px_rgba(0,0,0,0.5)] transition-all duration-500 transform translate-x-full`;
+                n.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-[10px] font-black tracking-widest uppercase mb-1 ${type === 'success' ? 'text-neonGreen' : (type === 'error' ? 'text-neonRed' : 'text-neonPurple')}">${title}</div>
+                            <div class="text-xs font-bold text-white">${text}</div>
+                        </div>
+                        <i class="ph-bold ${type === 'success' ? 'ph-check' : (type === 'error' ? 'ph-warning' : 'ph-info')} text-lg opacity-50"></i>
+                    </div>
+                `;
+                
                 container.appendChild(n);
-                setTimeout(() => { n.style.opacity = '0'; setTimeout(() => n.remove(), 500); }, 3000);
+                
+                // Animación de entrada
+                requestAnimationFrame(() => n.classList.remove('translate-x-full'));
+
+                // Sonido
+                if(navigator.vibrate) navigator.vibrate(50);
+
+                setTimeout(() => { 
+                    n.classList.add('opacity-0', 'translate-x-full'); 
+                    setTimeout(() => n.remove(), 500); 
+                }, 4000);
             },
 
-            centerMap() { if (this.userMarker) this.map.flyTo(this.userMarker.getLatLng(), 17); },
-            logout() { localStorage.clear(); location.reload(); }
+            centerMap() { 
+                if (this.userMarker) {
+                    this.map.flyTo(this.userMarker.getLatLng(), 18, { duration: 1.5 });
+                    if(navigator.vibrate) navigator.vibrate(50);
+                }
+            },
+            
+            logout() { 
+                if(confirm("¿Cerrar sistema NEXO?")) {
+                    localStorage.removeItem('nexoUserName');
+                    location.reload(); 
+                }
+            }
         };
 
         window.onload = () => app.init();
